@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 100" fill="none">
+  <!-- ── Gold network ring (left) ── -->
+  <g transform="translate(48,28)">
+    <circle cx="0" cy="0" r="18" stroke="#C9A227" stroke-width="1.6" fill="none" opacity="0.85"/>
+    <!-- nodes on ring -->
+    <circle cx="0"   cy="-18" r="3.2" fill="#C9A227"/>
+    <circle cx="17"  cy="-5"  r="3.2" fill="#C9A227"/>
+    <circle cx="11"  cy="15"  r="3.2" fill="#C9A227"/>
+    <circle cx="-11" cy="15"  r="3.2" fill="#C9A227"/>
+    <circle cx="-17" cy="-5"  r="3.2" fill="#C9A227"/>
+    <!-- spokes -->
+    <line x1="0"   y1="0" x2="0"   y2="-18" stroke="#C9A227" stroke-width="1.2" opacity="0.5"/>
+    <line x1="0"   y1="0" x2="17"  y2="-5"  stroke="#C9A227" stroke-width="1.2" opacity="0.5"/>
+    <line x1="0"   y1="0" x2="11"  y2="15"  stroke="#C9A227" stroke-width="1.2" opacity="0.5"/>
+    <line x1="0"   y1="0" x2="-11" y2="15"  stroke="#C9A227" stroke-width="1.2" opacity="0.5"/>
+    <line x1="0"   y1="0" x2="-17" y2="-5"  stroke="#C9A227" stroke-width="1.2" opacity="0.5"/>
+    <circle cx="0" cy="0" r="4" fill="#C9A227"/>
+  </g>
+  <!-- ── Gold network ring (right) ── -->
+  <g transform="translate(74,28)">
+    <circle cx="0" cy="0" r="18" stroke="#C9A227" stroke-width="1.6" fill="none" opacity="0.85"/>
+    <circle cx="0"   cy="-18" r="3.2" fill="#C9A227"/>
+    <circle cx="17"  cy="-5"  r="3.2" fill="#C9A227"/>
+    <circle cx="11"  cy="15"  r="3.2" fill="#C9A227"/>
+    <circle cx="-11" cy="15"  r="3.2" fill="#C9A227"/>
+    <circle cx="-17" cy="-5"  r="3.2" fill="#C9A227"/>
+    <line x1="0"   y1="0" x2="0"   y2="-18" stroke="#C9A227" stroke-width="1.2" opacity="0.5"/>
+    <line x1="0"   y1="0" x2="17"  y2="-5"  stroke="#C9A227" stroke-width="1.2" opacity="0.5"/>
+    <line x1="0"   y1="0" x2="11"  y2="15"  stroke="#C9A227" stroke-width="1.2" opacity="0.5"/>
+    <line x1="0"   y1="0" x2="-11" y2="15"  stroke="#C9A227" stroke-width="1.2" opacity="0.5"/>
+    <line x1="0"   y1="0" x2="-17" y2="-5"  stroke="#C9A227" stroke-width="1.2" opacity="0.5"/>
+    <circle cx="0" cy="0" r="4" fill="#C9A227"/>
+  </g>
+
+  <!-- ── Hand silhouette ── -->
+  <g transform="translate(61,30)" fill="#1A2035">
+    <!-- palm -->
+    <path d="M0 38 C-10 36 -14 28 -13 20 L-12 8 C-12 5 -9 4 -7 6 L-7 18
+             C-6 16 -6 4 -3 4 C0 4 0 16 0 18
+             C1 16 1 5 4 5 C7 5 7 17 7 19
+             C8 17 8 9 11 10 C14 11 13 20 13 24
+             L13 32 C13 36 8 40 0 38 Z"/>
+    <!-- thumb hint -->
+    <path d="M-13 14 C-16 12 -17 8 -15 6 C-13 4 -12 6 -12 8 Z" opacity="0.7"/>
+    <!-- buildings rising from palm -->
+    <!-- left building -->
+    <rect x="-9" y="-12" width="6" height="16" rx="1"/>
+    <rect x="-8" y="-10" width="1.5" height="2" fill="white" opacity="0.5"/>
+    <rect x="-5" y="-10" width="1.5" height="2" fill="white" opacity="0.5"/>
+    <rect x="-8" y="-6"  width="1.5" height="2" fill="white" opacity="0.5"/>
+    <rect x="-5" y="-6"  width="1.5" height="2" fill="white" opacity="0.5"/>
+    <!-- center tall building -->
+    <rect x="-2" y="-20" width="5" height="24" rx="1"/>
+    <rect x="-1" y="-18" width="1.5" height="2"  fill="white" opacity="0.5"/>
+    <rect x="1.5" y="-18" width="1.5" height="2" fill="white" opacity="0.5"/>
+    <rect x="-1" y="-13" width="1.5" height="2"  fill="white" opacity="0.5"/>
+    <rect x="1.5" y="-13" width="1.5" height="2" fill="white" opacity="0.5"/>
+    <rect x="-1" y="-8"  width="1.5" height="2"  fill="white" opacity="0.5"/>
+    <!-- right building -->
+    <rect x="4"  y="-14" width="6" height="18" rx="1"/>
+    <rect x="5"  y="-12" width="1.5" height="2" fill="white" opacity="0.5"/>
+    <rect x="7.5" y="-12" width="1.5" height="2" fill="white" opacity="0.5"/>
+    <rect x="5"  y="-7"  width="1.5" height="2" fill="white" opacity="0.5"/>
+    <rect x="7.5" y="-7"  width="1.5" height="2" fill="white" opacity="0.5"/>
+  </g>
+
+  <!-- ── Text: "Smart Property" ── -->
+  <text x="111" y="46"
+        font-family="Montserrat,Poppins,Arial,sans-serif"
+        font-size="17" font-weight="800"
+        fill="#1A2035" letter-spacing="-0.3">Smart</text>
+  <text x="111" y="65"
+        font-family="Montserrat,Poppins,Arial,sans-serif"
+        font-size="17" font-weight="800"
+        fill="#C9A227" letter-spacing="-0.3">Property</text>
+  <!-- ── Text: "Rental System" ── -->
+  <text x="111" y="82"
+        font-family="Montserrat,Poppins,Arial,sans-serif"
+        font-size="11" font-weight="500"
+        fill="#444" letter-spacing="0.5">Rental System</text>
+</svg>
