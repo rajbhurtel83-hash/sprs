@@ -1,0 +1,584 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Compare Properties - SPRS{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/premium.css' %}">
+<style>
+    .compare-container {
+        overflow-x: auto;
+        padding: 1rem 0;
+    }
+    
+    .compare-table {
+        min-width: 800px;
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 1rem 0;
+    }
+    
+    .compare-table th,
+    .compare-table td {
+        padding: 1rem;
+        vertical-align: top;
+        border: none;
+    }
+    
+    .compare-table thead th {
+        position: sticky;
+        top: 70px;
+        background: var(--bg-primary);
+        z-index: 10;
+    }
+    
+    .compare-header {
+        background: var(--gradient-primary);
+        color: white;
+        padding: 2rem;
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        text-align: center;
+    }
+    
+    .compare-card {
+        background: var(--bg-secondary);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-md);
+        overflow: hidden;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+    
+    .compare-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-xl);
+    }
+    
+    .compare-card-image {
+        height: 200px;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .compare-card-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .remove-compare-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(255, 255, 255, 0.9);
+        border: none;
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        z-index: 5;
+    }
+    
+    .remove-compare-btn:hover {
+        background: var(--danger);
+        color: white;
+    }
+    
+    .compare-card-body {
+        padding: 1.5rem;
+    }
+    
+    .compare-card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+    
+    .compare-card-price {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 1rem;
+    }
+    
+    .compare-feature {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .compare-feature:last-child {
+        border-bottom: none;
+    }
+    
+    .compare-feature-label {
+        flex: 0 0 150px;
+        font-weight: 500;
+        color: var(--text-secondary);
+    }
+    
+    .compare-feature-value {
+        flex: 1;
+        text-align: center;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    
+    .compare-feature-value.has-feature {
+        color: var(--success);
+    }
+    
+    .compare-feature-value.no-feature {
+        color: var(--text-muted);
+    }
+    
+    .amenity-check {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+    }
+    
+    .amenity-check.yes {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success);
+    }
+    
+    .amenity-check.no {
+        background: rgba(156, 163, 175, 0.1);
+        color: var(--text-muted);
+    }
+    
+    .empty-compare {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: var(--bg-secondary);
+        border-radius: var(--radius-lg);
+        margin-top: 2rem;
+    }
+    
+    .empty-compare-icon {
+        font-size: 4rem;
+        color: var(--text-muted);
+        margin-bottom: 1.5rem;
+    }
+    
+    .add-property-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 1rem 2rem;
+        background: var(--gradient-primary);
+        color: white;
+        border-radius: var(--radius-lg);
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .add-property-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+        color: white;
+    }
+    
+    /* Rating stars */
+    .rating-stars {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.25rem;
+    }
+    
+    .rating-stars i {
+        color: #fbbf24;
+    }
+    
+    /* Comparison row highlight */
+    .comparison-row {
+        display: grid;
+        grid-template-columns: 200px repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        padding: 1rem;
+        background: var(--bg-secondary);
+        border-radius: var(--radius-md);
+        margin-bottom: 0.5rem;
+        align-items: center;
+    }
+    
+    .comparison-row:nth-child(even) {
+        background: var(--bg-tertiary);
+    }
+    
+    .comparison-row-label {
+        font-weight: 600;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .comparison-row-value {
+        text-align: center;
+        font-weight: 500;
+    }
+    
+    /* Best value highlight */
+    .best-value {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+        border: 2px solid var(--success);
+        position: relative;
+    }
+    
+    .best-value::before {
+        content: 'Best Value';
+        position: absolute;
+        top: -12px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--success);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    /* View property button */
+    .view-property-btn {
+        display: block;
+        text-align: center;
+        padding: 0.75rem 1.5rem;
+        background: var(--gradient-primary);
+        color: white;
+        border-radius: var(--radius-md);
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        margin-top: 1rem;
+    }
+    
+    .view-property-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+        color: white;
+    }
+    
+    @media (max-width: 768px) {
+        .comparison-row {
+            grid-template-columns: 1fr;
+            text-align: center;
+        }
+        
+        .comparison-row-label {
+            justify-content: center;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">Compare Properties</h1>
+            <p class="text-muted mb-0">
+                {% if properties %}
+                    Comparing {{ property_count }} propert{{ property_count|pluralize:"y,ies" }}
+                {% else %}
+                    Add properties to compare
+                {% endif %}
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            {% if properties %}
+            <a href="{% url 'properties:clear_comparison' %}" class="btn btn-outline-danger">
+                <i class="bi bi-trash me-1"></i> Clear All
+            </a>
+            {% endif %}
+            <a href="{% url 'properties:list' %}" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-1"></i> Add More
+            </a>
+        </div>
+    </div>
+
+    {% if properties %}
+    <!-- Property Cards -->
+    <div class="row g-4 mb-4">
+        {% for property in properties %}
+        <div class="col-md-6 col-lg-3">
+            <div class="compare-card {% if forloop.first and property_count > 1 %}best-value{% endif %}">
+                <div class="compare-card-image">
+                    {% if property.images.first %}
+                    <img src="{{ property.images.first.image.url }}" alt="{{ property.title }}">
+                    {% else %}
+                    <img src="{% static 'images/property-placeholder.jpg' %}" alt="No image">
+                    {% endif %}
+                    <a href="{% url 'properties:remove_from_comparison' property.pk %}" 
+                       class="remove-compare-btn" title="Remove from comparison">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                </div>
+                <div class="compare-card-body">
+                    <h5 class="compare-card-title">{{ property.title|truncatewords:5 }}</h5>
+                    <p class="text-muted small mb-2">
+                        <i class="bi bi-geo-alt me-1"></i>{{ property.city }}
+                    </p>
+                    <div class="compare-card-price">
+                        NPR {{ property.price|floatformat:0 }}<small class="text-muted">/mo</small>
+                    </div>
+                    <a href="{% url 'properties:detail' property.pk %}" class="view-property-btn">
+                        View Details
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        
+        {% if property_count < 4 %}
+        <!-- Add more property placeholder -->
+        <div class="col-md-6 col-lg-3">
+            <div class="compare-card" style="border: 2px dashed var(--border-color); background: transparent;">
+                <div class="d-flex flex-column align-items-center justify-content-center h-100 p-4" style="min-height: 350px;">
+                    <i class="bi bi-plus-circle text-muted" style="font-size: 3rem;"></i>
+                    <p class="text-muted mt-2 mb-3">Add another property</p>
+                    <a href="{% url 'properties:list' %}" class="btn btn-outline-primary btn-sm">
+                        Browse Properties
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Comparison Details -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-list-check me-2"></i>Detailed Comparison</h5>
+        </div>
+        <div class="card-body p-0">
+            <!-- Basic Details -->
+            <div class="comparison-row">
+                <div class="comparison-row-label">
+                    <i class="bi bi-currency-rupee"></i> Monthly Rent
+                </div>
+                {% for property in properties %}
+                <div class="comparison-row-value">
+                    <strong>NPR {{ property.price|floatformat:0 }}</strong>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="comparison-row">
+                <div class="comparison-row-label">
+                    <i class="bi bi-house-door"></i> Property Type
+                </div>
+                {% for property in properties %}
+                <div class="comparison-row-value">
+                    {{ property.get_property_type_display }}
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="comparison-row">
+                <div class="comparison-row-label">
+                    <i class="bi bi-door-open"></i> Bedrooms
+                </div>
+                {% for property in properties %}
+                <div class="comparison-row-value">
+                    {{ property.bedrooms }} BHK
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="comparison-row">
+                <div class="comparison-row-label">
+                    <i class="bi bi-droplet"></i> Bathrooms
+                </div>
+                {% for property in properties %}
+                <div class="comparison-row-value">
+                    {{ property.bathrooms }}
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="comparison-row">
+                <div class="comparison-row-label">
+                    <i class="bi bi-rulers"></i> Area
+                </div>
+                {% for property in properties %}
+                <div class="comparison-row-value">
+                    {{ property.area }} sq ft
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="comparison-row">
+                <div class="comparison-row-label">
+                    <i class="bi bi-geo-alt"></i> Location
+                </div>
+                {% for property in properties %}
+                <div class="comparison-row-value">
+                    {{ property.city }}{% if property.address %}, {{ property.address|truncatewords:3 }}{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="comparison-row">
+                <div class="comparison-row-label">
+                    <i class="bi bi-star"></i> Rating
+                </div>
+                {% for property in properties %}
+                <div class="comparison-row-value">
+                    {% if property.reviews.count > 0 %}
+                    <div class="rating-stars">
+                        {% with avg_rating=property.average_rating %}
+                        {% for i in "12345" %}
+                        <i class="bi {% if forloop.counter <= avg_rating %}bi-star-fill{% else %}bi-star{% endif %}"></i>
+                        {% endfor %}
+                        <span class="ms-1">({{ property.reviews.count }})</span>
+                        {% endwith %}
+                    </div>
+                    {% else %}
+                    <span class="text-muted">No reviews</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="comparison-row">
+                <div class="comparison-row-label">
+                    <i class="bi bi-calendar"></i> Listed On
+                </div>
+                {% for property in properties %}
+                <div class="comparison-row-value">
+                    {{ property.created_at|date:"M d, Y" }}
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Amenities Section -->
+            {% if all_amenities %}
+            <div class="p-3 bg-light mt-3">
+                <h6 class="fw-bold mb-3"><i class="bi bi-check2-square me-2"></i>Amenities</h6>
+            </div>
+            
+            {% for amenity in all_amenities %}
+            <div class="comparison-row">
+                <div class="comparison-row-label">
+                    {{ amenity }}
+                </div>
+                {% for property in properties %}
+                <div class="comparison-row-value">
+                    {% if amenity in property.amenities.all|join:", " %}
+                    <span class="amenity-check yes">
+                        <i class="bi bi-check-lg"></i>
+                    </span>
+                    {% else %}
+                    <span class="amenity-check no">
+                        <i class="bi bi-x-lg"></i>
+                    </span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Empty State -->
+    <div class="empty-compare">
+        <i class="bi bi-stack empty-compare-icon"></i>
+        <h4 class="mb-3">No Properties to Compare</h4>
+        <p class="text-muted mb-4">
+            Add properties to your comparison list to see them side by side.<br>
+            You can compare up to 4 properties at once.
+        </p>
+        <a href="{% url 'properties:list' %}" class="add-property-btn">
+            <i class="bi bi-search"></i>
+            Browse Properties
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle remove comparison via AJAX
+    document.querySelectorAll('.remove-compare-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const url = this.getAttribute('href');
+            
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'removed') {
+                    // Remove the card with animation
+                    const card = this.closest('.col-md-6');
+                    card.style.opacity = '0';
+                    card.style.transform = 'scale(0.8)';
+                    setTimeout(() => {
+                        card.remove();
+                        // If no properties left, show empty state
+                        if (document.querySelectorAll('.compare-card').length === 0) {
+                            location.reload();
+                        }
+                    }, 300);
+                }
+            })
+            .catch(() => {
+                window.location.href = url;
+            });
+        });
+    });
+    
+    // Highlight best values
+    highlightBestValues();
+    
+    function highlightBestValues() {
+        // Find lowest price
+        const priceRow = document.querySelector('.comparison-row:first-child');
+        if (priceRow) {
+            const values = priceRow.querySelectorAll('.comparison-row-value');
+            let lowestIdx = 0;
+            let lowestPrice = Infinity;
+            
+            values.forEach((val, idx) => {
+                const priceText = val.textContent.replace(/[^0-9]/g, '');
+                const price = parseInt(priceText) || Infinity;
+                if (price < lowestPrice) {
+                    lowestPrice = price;
+                    lowestIdx = idx;
+                }
+            });
+            
+            if (values[lowestIdx]) {
+                values[lowestIdx].innerHTML += ' <span class="badge bg-success ms-1">Lowest</span>';
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

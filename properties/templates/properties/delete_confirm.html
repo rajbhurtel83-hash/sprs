@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete: {{ property.title }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'properties:my_properties' %}" class="text-decoration-none">My Properties</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'properties:detail' pk=property.pk %}" class="text-decoration-none">{{ property.title|truncatewords:4 }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Delete</li>
+                </ol>
+            </nav>
+
+            <!-- Delete Confirmation Card -->
+            <div class="card shadow-sm border-0 border-top border-danger border-4">
+                <div class="card-body text-center py-5">
+                    <div class="mb-4">
+                        <i class="bi bi-exclamation-triangle text-danger" style="font-size: 4rem;"></i>
+                    </div>
+
+                    <h2 class="h3 fw-bold mb-3">Delete Property</h2>
+
+                    <p class="text-muted mb-2">Are you sure you want to permanently delete this property?</p>
+
+                    <div class="bg-light rounded p-3 mb-4 mx-auto" style="max-width: 400px;">
+                        <h5 class="fw-bold mb-1">{{ property.title }}</h5>
+                        <p class="text-muted small mb-0">
+                            <i class="bi bi-geo-alt me-1"></i>{{ property.address }}
+                        </p>
+                    </div>
+
+                    <div class="alert alert-warning text-start mx-auto" style="max-width: 400px;">
+                        <div class="d-flex">
+                            <i class="bi bi-info-circle me-2 mt-1"></i>
+                            <div>
+                                <strong>Warning:</strong> This action cannot be undone. All associated images and data will be permanently removed.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-center gap-3 mt-4">
+                        <form method="post">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-lg px-4">
+                                <i class="bi bi-trash me-2"></i>Yes, Delete Property
+                            </button>
+                        </form>
+                        <a href="{% url 'properties:detail' pk=property.pk %}" class="btn btn-outline-secondary btn-lg px-4">
+                            <i class="bi bi-arrow-left me-2"></i>Cancel
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

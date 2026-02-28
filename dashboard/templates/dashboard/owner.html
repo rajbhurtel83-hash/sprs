@@ -1,0 +1,286 @@
+{% extends 'base.html' %}
+
+{% block title %}Owner Dashboard{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Welcome Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
+        <div>
+            <h1 class="h2 fw-bold mb-1">
+                <i class="bi bi-building me-2"></i>Welcome back, {{ user.get_full_name|default:user.username }}!
+            </h1>
+            <p class="text-muted mb-0">Manage your properties and stay on top of inquiries.</p>
+        </div>
+    </div>
+
+    <!-- Stats Cards Row -->
+    <div class="row g-4 mb-4">
+        <div class="col-6 col-lg-3">
+            <div class="stat-card stat-primary">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon me-3">
+                        <i class="bi bi-houses"></i>
+                    </div>
+                    <div>
+                        <div class="stat-label">Total Properties</div>
+                        <div class="stat-value">{{ total_properties|default:"0" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="stat-card stat-success">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon me-3">
+                        <i class="bi bi-check-circle"></i>
+                    </div>
+                    <div>
+                        <div class="stat-label">Available</div>
+                        <div class="stat-value">{{ available_count|default:"0" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="stat-card stat-warning">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon me-3">
+                        <i class="bi bi-key"></i>
+                    </div>
+                    <div>
+                        <div class="stat-label">Rented</div>
+                        <div class="stat-value">{{ rented_count|default:"0" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="stat-card stat-info">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon me-3">
+                        <i class="bi bi-envelope"></i>
+                    </div>
+                    <div>
+                        <div class="stat-label">Unread Messages</div>
+                        <div class="stat-value">{{ unread_count|default:"0" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <a href="{% url 'properties:create' %}" class="text-decoration-none">
+                <div class="card h-100 border-0 shadow-sm text-center p-4">
+                    <div class="card-body">
+                        <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px;">
+                            <i class="bi bi-plus-circle text-primary" style="font-size: 1.5rem;"></i>
+                        </div>
+                        <h5 class="card-title fw-bold text-dark">Add Property</h5>
+                        <p class="card-text text-muted small">List a new property for prospective tenants to discover.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="{% url 'properties:my_properties' %}" class="text-decoration-none">
+                <div class="card h-100 border-0 shadow-sm text-center p-4">
+                    <div class="card-body">
+                        <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px;">
+                            <i class="bi bi-list-ul text-success" style="font-size: 1.5rem;"></i>
+                        </div>
+                        <h5 class="card-title fw-bold text-dark">Manage Listings</h5>
+                        <p class="card-text text-muted small">Edit, update, or remove your existing property listings.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="{% url 'messaging:inbox' %}" class="text-decoration-none">
+                <div class="card h-100 border-0 shadow-sm text-center p-4">
+                    <div class="card-body">
+                        <div class="bg-info bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px;">
+                            <i class="bi bi-chat-dots text-info" style="font-size: 1.5rem;"></i>
+                        </div>
+                        <h5 class="card-title fw-bold text-dark">
+                            Messages
+                            {% if unread_count %}
+                            <span class="badge bg-danger rounded-pill ms-1">{{ unread_count }}</span>
+                            {% endif %}
+                        </h5>
+                        <p class="card-text text-muted small">Read and respond to messages from interested tenants.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="{% url 'properties:manage_requests' %}" class="text-decoration-none">
+                <div class="card h-100 border-0 shadow-sm text-center p-4">
+                    <div class="card-body">
+                        <div class="bg-warning bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px;">
+                            <i class="bi bi-inbox text-warning" style="font-size: 1.5rem;"></i>
+                        </div>
+                        <h5 class="card-title fw-bold text-dark">Booking Requests</h5>
+                        <p class="card-text text-muted small">Review and respond to booking, visit, and inquiry requests from tenants.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Recent Properties -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="bi bi-houses me-2"></i>Your Properties
+                    </h5>
+                    <a href="{% url 'properties:my_properties' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body p-0">
+                    {% if properties %}
+                    <div class="table-responsive">
+                        <table class="table table-custom mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Property</th>
+                                    <th>Price</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for property in properties %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-shrink-0 me-3" style="width: 50px; height: 50px; border-radius: .5rem; overflow: hidden;">
+                                                {% if property.primary_image %}
+                                                <img src="{{ property.primary_image.image.url }}"
+                                                     class="w-100 h-100" style="object-fit: cover;"
+                                                     alt="{{ property.title }}">
+                                                {% else %}
+                                                <div class="w-100 h-100 bg-light d-flex align-items-center justify-content-center">
+                                                    <i class="bi bi-image text-muted"></i>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            <div style="min-width: 0;">
+                                                <h6 class="mb-0 fw-semibold text-truncate" style="max-width: 200px;">{{ property.title }}</h6>
+                                                <small class="text-muted">{{ property.district }}, Ward {{ property.ward_number }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="fw-semibold text-success">Rs. {{ property.price|floatformat:0 }}</span>
+                                        <small class="text-muted d-block">per month</small>
+                                    </td>
+                                    <td>
+                                        {% if property.status == 'available' %}
+                                        <span class="badge bg-success bg-opacity-10 text-success">Available</span>
+                                        {% elif property.status == 'rented' %}
+                                        <span class="badge bg-warning bg-opacity-10 text-warning">Rented</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary bg-opacity-10 text-secondary">{{ property.get_status_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <a href="{% url 'properties:edit' pk=property.pk %}" class="btn btn-sm btn-outline-primary me-1" title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a href="{% url 'properties:detail' pk=property.pk %}" class="btn btn-sm btn-outline-secondary" title="View">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state py-4">
+                        <i class="bi bi-houses"></i>
+                        <h6>No properties listed yet</h6>
+                        <p class="text-muted small">Add your first property to start receiving inquiries.</p>
+                        <a href="{% url 'properties:create' %}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-plus-circle me-1"></i>Add Property
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Conversations -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="bi bi-chat-left-text me-2"></i>Recent Conversations
+                        {% if unread_count %}
+                        <span class="badge bg-danger rounded-pill ms-1">{{ unread_count }}</span>
+                        {% endif %}
+                    </h5>
+                    <a href="{% url 'messaging:inbox' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body p-0">
+                    {% if conversations %}
+                    <div class="list-group list-group-flush">
+                        {% for item in conversations %}
+                        <a href="{% url 'messaging:conversation' item.conversation.pk %}"
+                           class="list-group-item list-group-item-action py-3 px-4 {% if item.unread_count > 0 %}bg-primary bg-opacity-10 border-start border-primary border-4{% endif %}">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0 me-3">
+                                    {% if item.other_user.profile_picture %}
+                                    <img src="{{ item.other_user.profile_picture.url }}"
+                                         alt="{{ item.other_user.get_full_name|default:item.other_user.username }}"
+                                         class="rounded-circle" width="42" height="42" style="object-fit: cover;">
+                                    {% else %}
+                                    <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center"
+                                         style="width: 42px; height: 42px;">
+                                        <i class="bi bi-person text-primary"></i>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-grow-1" style="min-width: 0;">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <h6 class="mb-0 text-truncate me-2 {% if item.unread_count > 0 %}fw-bold{% else %}fw-semibold{% endif %}">
+                                            {{ item.other_user.get_full_name|default:item.other_user.username }}
+                                        </h6>
+                                        {% if item.unread_count > 0 %}
+                                        <span class="badge bg-primary rounded-pill flex-shrink-0">{{ item.unread_count }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <p class="small text-muted mb-0 text-truncate">
+                                        <i class="bi bi-house-door me-1"></i>{{ item.conversation.property.title|truncatewords:6 }}
+                                    </p>
+                                    {% if item.last_message %}
+                                    <p class="small mb-0 mt-1 text-truncate {% if item.unread_count > 0 %}fw-semibold text-dark{% else %}text-muted{% endif %}">
+                                        {% if item.last_message.sender == request.user %}
+                                        <span class="text-muted">You: </span>
+                                        {% endif %}
+                                        {{ item.last_message.content|truncatewords:8 }}
+                                    </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="empty-state py-4">
+                        <i class="bi bi-chat-square-text"></i>
+                        <h6>No conversations yet</h6>
+                        <p class="text-muted small">Tenant inquiries will appear here.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

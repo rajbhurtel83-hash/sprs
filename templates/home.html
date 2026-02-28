@@ -1,0 +1,501 @@
+﻿{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Home{% endblock %}
+
+{% block extra_css %}
+<style>
+/* â”€â”€ Hero Counter animation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.stat-num { display: inline-block; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+     HERO SECTION â€” Cinematic Full-Width
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<section class="sprs-hero">
+    <!-- Animated background orbs -->
+    <div class="hero-orb hero-orb-1"></div>
+    <div class="hero-orb hero-orb-2"></div>
+    <div class="hero-orb hero-orb-3"></div>
+
+    <div class="container-xl position-relative z-1">
+        <div class="row align-items-center min-vh-hero">
+
+            <!-- Left: Copy -->
+            <div class="col-lg-6 col-xl-5 py-5">
+                <div class="hero-eyebrow" data-aos="fade-up">
+                    <i class="bi bi-patch-check-fill"></i>
+                    Nepal's Most Trusted Rental Platform
+                </div>
+
+                <h1 class="hero-title" data-aos="fade-up" data-aos-delay="80">
+                    Find Your<br>
+                    <span class="hero-highlight">Perfect Home</span><br>
+                    in Nepal
+                </h1>
+
+                <p class="hero-desc" data-aos="fade-up" data-aos-delay="160">
+                    From the bustling streets of Kathmandu to the serene valleys of
+                    Pokhara â€” discover verified rental properties with AI-powered
+                    search and interactive maps.
+                </p>
+
+                <!-- Animated Search Bar -->
+                <form class="hero-search-form" action="{% url 'properties:list' %}" method="GET"
+                      data-aos="fade-up" data-aos-delay="240">
+                    <div class="hero-search-inner">
+                        <i class="bi bi-search hero-search-icon"></i>
+                        <input type="text" name="search"
+                               class="hero-search-input"
+                               id="heroSearch"
+                               placeholder="Search by district, city, or property typeâ€¦"
+                               autocomplete="off">
+                        <button type="submit" class="hero-search-btn">
+                            Search <i class="bi bi-arrow-right ms-1"></i>
+                        </button>
+                    </div>
+                    <!-- Quick Filters -->
+                    <div class="hero-quick-filters" data-aos="fade-up" data-aos-delay="300">
+                        <span class="filter-label">Popular:</span>
+                        <a href="{% url 'properties:list' %}?property_type=room" class="quick-filter-chip">Rooms</a>
+                        <a href="{% url 'properties:list' %}?property_type=flat" class="quick-filter-chip">Flats</a>
+                        <a href="{% url 'properties:list' %}?property_type=house" class="quick-filter-chip">Houses</a>
+                        <a href="{% url 'properties:list' %}?district=kathmandu" class="quick-filter-chip">Kathmandu</a>
+                        <a href="{% url 'properties:list' %}?district=lalitpur" class="quick-filter-chip">Lalitpur</a>
+                    </div>
+                </form>
+
+                <div class="hero-ctas" data-aos="fade-up" data-aos-delay="320">
+                    <a href="{% url 'properties:list' %}" class="btn-sprs-primary">
+                        <i class="bi bi-search me-2"></i>Browse Properties
+                    </a>
+                    <a href="{% url 'properties:map_explorer' %}" class="btn-sprs-ghost">
+                        <i class="bi bi-map me-2"></i>Explore Map
+                    </a>
+                </div>
+            </div>
+
+            <!-- Right: Luxury Property Card -->
+            <div class="col-lg-6 col-xl-7 d-none d-lg-flex justify-content-end py-5"
+                 data-aos="fade-left" data-aos-delay="200">
+                <div class="hero-showcase">
+                    <!-- Floating card -->
+                    <div class="showcase-card">
+                        <div class="showcase-card-badge">Discover Luxury Living</div>
+                        <div class="showcase-img-wrap">
+                            <!-- Carousel preview -->
+                            <div id="heroCarousel" class="carousel slide" data-bs-ride="carousel">
+                                <div class="carousel-inner">
+                                    <div class="carousel-item active">
+                                        <div class="showcase-placeholder-img" style="background: linear-gradient(135deg, #1e3a5f, #0f2340);">
+                                            <i class="bi bi-building" style="font-size:4rem; opacity:.3;color:#C9A227;"></i>
+                                        </div>
+                                    </div>
+                                    {% for property in recent_properties|slice:":4" %}
+                                    {% if property.primary_image %}
+                                    <div class="carousel-item">
+                                        <img src="{{ property.primary_image.image.url }}" class="showcase-real-img" alt="{{ property.title }}">
+                                    </div>
+                                    {% endif %}
+                                    {% endfor %}
+                                </div>
+                                <button class="carousel-control-prev showcase-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+                                    <i class="bi bi-chevron-left"></i>
+                                </button>
+                                <button class="carousel-control-next showcase-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+                                    <i class="bi bi-chevron-right"></i>
+                                </button>
+                            </div>
+                            <!-- Overlay info -->
+                            {% if recent_properties %}
+                            <div class="showcase-overlay">
+                                <span class="showcase-prop-type">{{ recent_properties.0.get_property_type_display }}</span>
+                                <p class="showcase-prop-title">{{ recent_properties.0.title }}</p>
+                                <p class="showcase-prop-sub">{{ recent_properties.0.municipality }}, {{ recent_properties.0.district }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <a href="{% url 'properties:list' %}" class="showcase-cta">
+                            <i class="bi bi-search me-2"></i>Explore All Properties
+                        </a>
+                    </div>
+                    <!-- Floating stat chips -->
+                    <div class="hero-stat-chip chip-1" data-aos="zoom-in" data-aos-delay="500">
+                        <i class="bi bi-shield-check-fill"></i>
+                        <span>Verified Listings</span>
+                    </div>
+                    <div class="hero-stat-chip chip-2" data-aos="zoom-in" data-aos-delay="620">
+                        <i class="bi bi-star-fill" style="color:#C9A227;"></i>
+                        <span>Top Rated</span>
+                    </div>
+                    <div class="hero-stat-chip chip-3" data-aos="zoom-in" data-aos-delay="740">
+                        <i class="bi bi-robot"></i>
+                        <span>AI Search</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scroll indicator -->
+    <div class="hero-scroll-indicator">
+        <i class="bi bi-chevron-down"></i>
+    </div>
+</section>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+     STATS COUNTER SECTION
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<section class="sprs-stats-bar">
+    <div class="container-xl">
+        <div class="stats-bar-grid">
+            <div class="stat-item" data-aos="fade-up">
+                <div class="stat-number" data-target="{{ property_count|default:'0' }}">0</div>
+                <div class="stat-label">Properties Listed</div>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item" data-aos="fade-up" data-aos-delay="80">
+                <div class="stat-number" data-target="{{ owner_count|default:'0' }}">0</div>
+                <div class="stat-label">Verified Owners</div>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item" data-aos="fade-up" data-aos-delay="160">
+                <div class="stat-number" data-target="{{ tenant_count|default:'0' }}">0</div>
+                <div class="stat-label">Happy Tenants</div>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item" data-aos="fade-up" data-aos-delay="240">
+                <div class="stat-number" data-target="{{ district_count|default:'77' }}">0</div>
+                <div class="stat-label">Districts Covered</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+     PROPERTY CATEGORIES
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<section class="sprs-section">
+    <div class="container-xl">
+        <div class="section-header" data-aos="fade-up">
+            <div class="section-eyebrow">Browse by Type</div>
+            <h2 class="section-title">Find What You're Looking For</h2>
+            <p class="section-sub">From cozy rooms to commercial spaces â€” discover every category</p>
+        </div>
+        <div class="categories-grid" data-aos="fade-up" data-aos-delay="100">
+            <a href="{% url 'properties:list' %}?property_type=room" class="category-card">
+                <div class="category-icon"><i class="bi bi-door-open"></i></div>
+                <div class="category-name">Rooms</div>
+                <div class="category-desc">Single & double rooms</div>
+                <i class="bi bi-arrow-right category-arrow"></i>
+            </a>
+            <a href="{% url 'properties:list' %}?property_type=flat" class="category-card">
+                <div class="category-icon"><i class="bi bi-building"></i></div>
+                <div class="category-name">Flats</div>
+                <div class="category-desc">Modern apartments</div>
+                <i class="bi bi-arrow-right category-arrow"></i>
+            </a>
+            <a href="{% url 'properties:list' %}?property_type=house" class="category-card">
+                <div class="category-icon"><i class="bi bi-house-heart"></i></div>
+                <div class="category-name">Houses</div>
+                <div class="category-desc">Family homes</div>
+                <i class="bi bi-arrow-right category-arrow"></i>
+            </a>
+            <a href="{% url 'properties:list' %}?property_type=commercial" class="category-card">
+                <div class="category-icon"><i class="bi bi-shop"></i></div>
+                <div class="category-name">Commercial</div>
+                <div class="category-desc">Offices & shops</div>
+                <i class="bi bi-arrow-right category-arrow"></i>
+            </a>
+            <a href="{% url 'properties:list' %}?property_type=land" class="category-card">
+                <div class="category-icon"><i class="bi bi-map"></i></div>
+                <div class="category-name">Land</div>
+                <div class="category-desc">Plots & land</div>
+                <i class="bi bi-arrow-right category-arrow"></i>
+            </a>
+            <a href="{% url 'properties:list' %}" class="category-card category-card-all">
+                <div class="category-icon"><i class="bi bi-grid-3x3-gap"></i></div>
+                <div class="category-name">View All</div>
+                <div class="category-desc">All listings</div>
+                <i class="bi bi-arrow-right category-arrow"></i>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+     RECENT PROPERTIES â€” Premium Cards
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<section class="sprs-section sprs-section-alt">
+    <div class="container-xl">
+        <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-5" data-aos="fade-up">
+            <div>
+                <div class="section-eyebrow">Fresh Listings</div>
+                <h2 class="section-title mb-0">Recent Properties</h2>
+            </div>
+            <a href="{% url 'properties:list' %}" class="btn-sprs-outline">
+                View All <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+        </div>
+
+        {% if recent_properties %}
+        <div class="row g-4">
+            {% for property in recent_properties %}
+            <div class="col-md-6 col-xl-4" data-aos="fade-up" data-aos-delay="{{ forloop.counter0|add:'0'|stringformat:'d' }}00">
+                <div class="sprs-property-card">
+                    <!-- Image -->
+                    <div class="property-card-img-wrap">
+                        {% if property.primary_image %}
+                        <img src="{{ property.primary_image.image.url }}"
+                             class="property-card-img" alt="{{ property.title }}"
+                             loading="lazy">
+                        {% else %}
+                        <div class="property-card-img-placeholder">
+                            <i class="bi bi-image"></i>
+                        </div>
+                        {% endif %}
+                        <!-- Badges -->
+                        <div class="property-card-badges">
+                            <span class="pcb pcb-type">{{ property.get_property_type_display }}</span>
+                            {% if property.rental_purpose and property.rental_purpose != 'any' %}
+                            <span class="pcb pcb-purpose">{{ property.get_rental_purpose_display }}</span>
+                            {% endif %}
+                        </div>
+                        <!-- Favorite -->
+                        <button class="property-card-fav" title="Save property">
+                            <i class="bi bi-heart"></i>
+                        </button>
+                    </div>
+
+                    <!-- Body -->
+                    <div class="property-card-body">
+                        <!-- Rating -->
+                        {% if property.review_count > 0 %}
+                        <div class="property-card-rating">
+                            {% for i in "12345" %}
+                            <i class="bi bi-star{% if forloop.counter <= property.average_rating %}-fill{% endif %}"></i>
+                            {% endfor %}
+                            <span>({{ property.review_count }})</span>
+                        </div>
+                        {% endif %}
+
+                        <h5 class="property-card-title">{{ property.title }}</h5>
+                        <p class="property-card-location">
+                            <i class="bi bi-geo-alt-fill"></i>
+                            {% if property.municipality %}{{ property.municipality }}, {% endif %}{{ property.district }}
+                        </p>
+
+                        <div class="property-card-footer">
+                            <div class="property-card-price">
+                                <span class="price-amount">Rs. {{ property.price|intcomma }}</span>
+                                <span class="price-period">/month</span>
+                            </div>
+                            <a href="{% url 'properties:detail' property.pk %}"
+                               class="property-card-btn">
+                                View <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="text-center mt-5" data-aos="fade-up">
+            <a href="{% url 'properties:list' %}" class="btn-sprs-primary btn-sprs-lg">
+                <i class="bi bi-grid-3x3-gap me-2"></i>View All Properties
+            </a>
+        </div>
+
+        {% else %}
+        <div class="sprs-empty-state" data-aos="fade-up">
+            <div class="empty-icon"><i class="bi bi-houses"></i></div>
+            <h4>No properties listed yet</h4>
+            <p>Be the first to list a premium property on SPRS.</p>
+            <a href="{% url 'properties:create' %}" class="btn-sprs-primary">
+                <i class="bi bi-plus-circle me-2"></i>List a Property
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+     WHY CHOOSE SPRS â€” Feature Grid
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<section class="sprs-section">
+    <div class="container-xl">
+        <div class="section-header" data-aos="fade-up">
+            <div class="section-eyebrow">Why SPRS</div>
+            <h2 class="section-title">Everything You Need to Rent Right</h2>
+            <p class="section-sub">Trusted by owners and tenants across all 77 districts of Nepal</p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card" data-aos="fade-up" data-aos-delay="0">
+                <div class="feature-icon feature-icon-red"><i class="bi bi-search"></i></div>
+                <h5 class="feature-title">Smart Search</h5>
+                <p class="feature-desc">Filter by district, price, type, ward, and more. Find exactly what you need.</p>
+            </div>
+            <div class="feature-card" data-aos="fade-up" data-aos-delay="80">
+                <div class="feature-icon feature-icon-gold"><i class="bi bi-map"></i></div>
+                <h5 class="feature-title">Interactive Map</h5>
+                <p class="feature-desc">Explore properties with price-tagged markers on a live, filterable map.</p>
+            </div>
+            <div class="feature-card" data-aos="fade-up" data-aos-delay="160">
+                <div class="feature-icon feature-icon-blue"><i class="bi bi-robot"></i></div>
+                <h5 class="feature-title">AI Chatbot</h5>
+                <p class="feature-desc">Ask Sasha, our bilingual AI assistant, to find properties in English or Nepali.</p>
+            </div>
+            <div class="feature-card" data-aos="fade-up" data-aos-delay="240">
+                <div class="feature-icon feature-icon-teal"><i class="bi bi-shield-check"></i></div>
+                <h5 class="feature-title">Verified Listings</h5>
+                <p class="feature-desc">Every property is verified by our team. Reviews ensure transparency.</p>
+            </div>
+            <div class="feature-card" data-aos="fade-up" data-aos-delay="320">
+                <div class="feature-icon feature-icon-purple"><i class="bi bi-chat-dots"></i></div>
+                <h5 class="feature-title">Direct Messaging</h5>
+                <p class="feature-desc">Chat directly with property owners. No middlemen, no fees.</p>
+            </div>
+            <div class="feature-card" data-aos="fade-up" data-aos-delay="400">
+                <div class="feature-icon feature-icon-orange"><i class="bi bi-calendar2-check"></i></div>
+                <h5 class="feature-title">Easy Booking</h5>
+                <p class="feature-desc">Request visits, track bookings, and manage your rental journey.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+     HOW IT WORKS
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<section class="sprs-section sprs-section-dark">
+    <div class="container-xl">
+        <div class="section-header light" data-aos="fade-up">
+            <div class="section-eyebrow eyebrow-gold">How It Works</div>
+            <h2 class="section-title">Three Steps to Your Perfect Rental</h2>
+        </div>
+        <div class="how-it-works-grid">
+            <div class="hiw-step" data-aos="fade-up" data-aos-delay="0">
+                <div class="hiw-number">01</div>
+                <div class="hiw-icon"><i class="bi bi-person-plus"></i></div>
+                <h4 class="hiw-title">Create Account</h4>
+                <p class="hiw-desc">Register as a tenant or property owner in under a minute. Free forever.</p>
+            </div>
+            <div class="hiw-connector" data-aos="fade-up" data-aos-delay="80"></div>
+            <div class="hiw-step" data-aos="fade-up" data-aos-delay="160">
+                <div class="hiw-number">02</div>
+                <div class="hiw-icon"><i class="bi bi-binoculars"></i></div>
+                <h4 class="hiw-title">Browse or List</h4>
+                <p class="hiw-desc">Search via map, AI chat, or filters. Owners list properties with photos & details.</p>
+            </div>
+            <div class="hiw-connector" data-aos="fade-up" data-aos-delay="160"></div>
+            <div class="hiw-step" data-aos="fade-up" data-aos-delay="320">
+                <div class="hiw-number">03</div>
+                <div class="hiw-icon"><i class="bi bi-handshake"></i></div>
+                <h4 class="hiw-title">Connect & Rent</h4>
+                <p class="hiw-desc">Message owners, book visits, read reviews, and finalize your rental.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+     MAP CTA BAND
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<section class="sprs-map-cta" data-aos="fade-up">
+    <div class="container-xl">
+        <div class="map-cta-inner">
+            <div class="map-cta-text">
+                <div class="section-eyebrow eyebrow-gold">Map Explorer</div>
+                <h2 class="section-title mb-2">Explore Properties on Interactive Map</h2>
+                <p class="section-sub mb-0">Price tags, property previews, filters â€” all on one powerful map.</p>
+            </div>
+            <a href="{% url 'properties:map_explorer' %}" class="btn-sprs-gold">
+                <i class="bi bi-map me-2"></i>Open Map Explorer
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+     CTA â€” REGISTER / LIST PROPERTY
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+{% if not user.is_authenticated %}
+<section class="sprs-section">
+    <div class="container-xl">
+        <div class="sprs-cta-card" data-aos="zoom-in">
+            <div class="cta-bg-orb"></div>
+            <div class="row align-items-center g-4">
+                <div class="col-lg-8">
+                    <div class="section-eyebrow eyebrow-gold">Join Today</div>
+                    <h2 class="section-title mb-2">Ready to Find Your Perfect Home?</h2>
+                    <p class="section-sub mb-0">Join thousands of tenants and owners already using SPRS across Nepal.</p>
+                </div>
+                <div class="col-lg-4 text-lg-end">
+                    <div class="d-flex flex-wrap gap-3 justify-content-lg-end">
+                        <a href="{% url 'users:register' %}" class="btn-sprs-primary">
+                            <i class="bi bi-person-plus me-2"></i>Get Started Free
+                        </a>
+                        <a href="{% url 'users:login' %}" class="btn-sprs-ghost-dark">
+                            Sign In
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// â”€â”€ Animated stat counters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+document.addEventListener('DOMContentLoaded', function () {
+    const counters = document.querySelectorAll('.stat-number[data-target]');
+    const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            const el = entry.target;
+            const target = parseInt(el.dataset.target, 10) || 0;
+            if (target === 0) { el.textContent = '0'; return; }
+            const duration = 1800;
+            const step = target / (duration / 16);
+            let current = 0;
+            const timer = setInterval(() => {
+                current += step;
+                if (current >= target) {
+                    el.textContent = target + '+';
+                    clearInterval(timer);
+                } else {
+                    el.textContent = Math.floor(current) + '+';
+                }
+            }, 16);
+            observer.unobserve(el);
+        });
+    }, { threshold: 0.5 });
+    counters.forEach(c => observer.observe(c));
+
+    // Hero search placeholder cycling
+    const placeholders = [
+        'Search by district, city, or property typeâ€¦',
+        'Try "Rooms in Kathmandu under Rs 10,000"',
+        'Try "2BHK flat in Lalitpur"',
+        'Try "Commercial space in Pokhara"',
+    ];
+    const input = document.getElementById('heroSearch');
+    if (input) {
+        let pi = 0;
+        setInterval(() => {
+            pi = (pi + 1) % placeholders.length;
+            input.setAttribute('placeholder', placeholders[pi]);
+        }, 3200);
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Map Explorer{% endblock %}
+
+{% block extra_css %}
+<!-- Leaflet CSS (free, no API key) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<!-- Leaflet MarkerCluster CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+<link rel="stylesheet" href="{% static 'css/map.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="map-explorer-container">
+    <!-- Left Sidebar: Filters -->
+    <div class="map-sidebar" id="mapSidebar">
+        <div class="map-sidebar-header">
+            <h5 class="fw-bold mb-0"><i class="bi bi-funnel me-2"></i>Filters</h5>
+            <button class="btn btn-sm btn-outline-secondary d-lg-none" id="closeSidebar">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <div class="map-sidebar-body">
+            <form id="mapFilterForm">
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">District</label>
+                    <input type="text" class="form-control form-control-sm" name="district" placeholder="e.g., Kathmandu">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Property Type</label>
+                    <select class="form-select form-select-sm" name="property_type">
+                        <option value="">All Types</option>
+                        <option value="room">Room</option>
+                        <option value="flat">Flat</option>
+                        <option value="apartment">Apartment</option>
+                        <option value="house">House</option>
+                        <option value="land">Land</option>
+                        <option value="commercial">Commercial Space</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Max Price (NPR)</label>
+                    <input type="number" class="form-control form-control-sm" name="max_price" placeholder="Max price">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Min Rooms</label>
+                    <input type="number" class="form-control form-control-sm" name="num_rooms" min="0" placeholder="Min rooms">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Rental Purpose</label>
+                    <select class="form-select form-select-sm" name="rental_purpose">
+                        <option value="">Any Purpose</option>
+                        <option value="family">Family</option>
+                        <option value="office">Office</option>
+                        <option value="student">Student</option>
+                    </select>
+                </div>
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-search me-1"></i>Apply Filters
+                    </button>
+                    <button type="reset" class="btn btn-outline-secondary btn-sm" id="resetFilters">
+                        <i class="bi bi-x-circle me-1"></i>Clear Filters
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Property List in Sidebar -->
+        <div class="map-sidebar-results">
+            <div class="px-3 py-2 bg-light border-top border-bottom">
+                <small class="fw-bold text-muted" id="resultCount">Loading properties...</small>
+            </div>
+            <div id="propertyList" class="map-property-list">
+                <!-- Properties loaded dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Map Area -->
+    <div class="map-main">
+        <button class="btn btn-primary btn-sm map-toggle-btn d-lg-none" id="toggleSidebar">
+            <i class="bi bi-funnel me-1"></i>Filters
+        </button>
+        <div id="mapContainer" class="map-container"></div>
+    </div>
+
+    <!-- Property Info Panel (slides in when marker clicked) -->
+    <div class="map-info-panel" id="mapInfoPanel">
+        <button class="btn btn-sm btn-light map-panel-close" id="closePanel">
+            <i class="bi bi-x-lg"></i>
+        </button>
+        <div id="panelContent">
+            <!-- Populated dynamically -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Leaflet JS (free, no API key) -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<!-- Leaflet MarkerCluster -->
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+    const API_URL = '/api/v1/properties/map/';
+</script>
+<script src="{% static 'js/map.js' %}"></script>
+{% endblock %}

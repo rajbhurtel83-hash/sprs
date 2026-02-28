@@ -1,0 +1,179 @@
+{% load static %}
+{% now "Y" as current_year %}
+
+<footer class="sprs-footer">
+    <!-- Main Footer -->
+    <div class="footer-main">
+        <div class="container-xl">
+            <div class="row g-5">
+                <!-- Brand Column -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="footer-brand">
+                        <div class="footer-brand-icon"><i class="bi bi-building-fill"></i></div>
+                        <div>
+                            <div class="footer-brand-name">SPRS</div>
+                            <div class="footer-brand-sub">Smart Property Rental System</div>
+                        </div>
+                    </div>
+                    <p class="footer-desc">
+                        Nepal's most trusted platform for discovering and listing premium rental properties.
+                        Connecting tenants and owners across all 77 districts.
+                    </p>
+                    <div class="footer-socials">
+                        <a href="#" class="social-btn" title="Facebook"><i class="bi bi-facebook"></i></a>
+                        <a href="#" class="social-btn" title="Instagram"><i class="bi bi-instagram"></i></a>
+                        <a href="#" class="social-btn" title="Twitter/X"><i class="bi bi-twitter-x"></i></a>
+                        <a href="#" class="social-btn" title="LinkedIn"><i class="bi bi-linkedin"></i></a>
+                    </div>
+                </div>
+
+                <!-- Quick Links -->
+                <div class="col-lg-2 col-md-3 col-6">
+                    <h6 class="footer-heading">Platform</h6>
+                    <ul class="footer-links">
+                        <li><a href="{% url 'home' %}">Home</a></li>
+                        <li><a href="{% url 'properties:list' %}">Browse Properties</a></li>
+                        <li><a href="{% url 'properties:map_explorer' %}">Map Explorer</a></li>
+                        <li><a href="{% url 'properties:compare' %}">Compare</a></li>
+                    </ul>
+                </div>
+
+                <!-- Account Links -->
+                <div class="col-lg-2 col-md-3 col-6">
+                    <h6 class="footer-heading">Account</h6>
+                    <ul class="footer-links">
+                        <li><a href="{% url 'users:login' %}">Sign In</a></li>
+                        <li><a href="{% url 'users:register' %}">Register</a></li>
+                        {% if user.is_authenticated %}
+                        <li><a href="{% url 'dashboard:index' %}">Dashboard</a></li>
+                        <li><a href="{% url 'favorites:list' %}">Favorites</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+
+                <!-- Contact Info -->
+                <div class="col-lg-4 col-md-6">
+                    <h6 class="footer-heading">Contact Us</h6>
+                    <ul class="footer-contact">
+                        <li>
+                            <i class="bi bi-geo-alt-fill"></i>
+                            <span>Kathmandu, Bagmati Province, Nepal</span>
+                        </li>
+                        <li>
+                            <i class="bi bi-envelope-fill"></i>
+                            <span>info@sprs.com.np</span>
+                        </li>
+                        <li>
+                            <i class="bi bi-telephone-fill"></i>
+                            <span>+977-1-4XXXXXX</span>
+                        </li>
+                        <li>
+                            <i class="bi bi-clock-fill"></i>
+                            <span>Sun – Fri, 9AM – 6PM NPT</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Bottom -->
+    <div class="footer-bottom">
+        <div class="container-xl">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <p class="mb-0 footer-copy">
+                    &copy; {{ current_year }} Smart Property Rental System. All rights reserved.
+                </p>
+                <p class="mb-0 footer-copy">
+                    Crafted in Nepal with <i class="bi bi-heart-fill" style="color:#C9A227;"></i> &mdash; Premium Quality
+                </p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- Back to Top -->
+<button class="back-to-top" id="backToTop" aria-label="Back to top">
+    <i class="bi bi-arrow-up"></i>
+</button>
+
+    <div class="container">
+        <div class="row g-4">
+            <!-- About Column -->
+            <div class="col-lg-4 col-md-6">
+                <h5 class="fw-bold mb-3">
+                    <i class="bi bi-building me-2" style="color: var(--color-crimson);"></i>SPRS
+                </h5>
+                <p class="text-white-50">
+                    Smart Property Rental System - Nepal's trusted platform for finding and
+                    listing rental properties. Connecting tenants and property owners
+                    across all 77 districts of Nepal.
+                </p>
+            </div>
+
+            <!-- Quick Links Column -->
+            <div class="col-lg-4 col-md-6">
+                <h5 class="fw-bold mb-3">Quick Links</h5>
+                <ul class="list-unstyled">
+                    <li class="mb-2">
+                        <a href="{% url 'home' %}" class="text-white-50 text-decoration-none">
+                            <i class="bi bi-chevron-right me-1"></i>Home
+                        </a>
+                    </li>
+                    <li class="mb-2">
+                        <a href="{% url 'properties:list' %}" class="text-white-50 text-decoration-none">
+                            <i class="bi bi-chevron-right me-1"></i>Browse Properties
+                        </a>
+                    </li>
+                    <li class="mb-2">
+                        <a href="{% url 'users:login' %}" class="text-white-50 text-decoration-none">
+                            <i class="bi bi-chevron-right me-1"></i>Login
+                        </a>
+                    </li>
+                    <li class="mb-2">
+                        <a href="{% url 'users:register' %}" class="text-white-50 text-decoration-none">
+                            <i class="bi bi-chevron-right me-1"></i>Register
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Contact Info Column -->
+            <div class="col-lg-4 col-md-6">
+                <h5 class="fw-bold mb-3">Contact Info</h5>
+                <ul class="list-unstyled text-white-50">
+                    <li class="mb-2">
+                        <i class="bi bi-geo-alt me-2" style="color: var(--color-crimson);"></i>Kathmandu, Nepal
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-envelope me-2" style="color: var(--color-crimson);"></i>info@sprs.com.np
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-telephone me-2" style="color: var(--color-crimson);"></i>+977-1-XXXXXXX
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <hr class="my-4" style="border-color: rgba(220, 20, 60, .2);">
+
+        <!-- Copyright -->
+        <div class="row">
+            <div class="col-md-6 text-center text-md-start">
+                <p class="text-white-50 mb-0">
+                    &copy; {% now "Y" %} Smart Property Rental System. All rights reserved.
+                </p>
+            </div>
+            <div class="col-md-6 text-center text-md-end">
+                <p class="text-white-50 mb-0">
+                    Made in Nepal with <i class="bi bi-heart-fill" style="color: var(--color-crimson);"></i>
+                </p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- Back to Top Button -->
+<button class="back-to-top" aria-label="Back to top">
+    <i class="bi bi-chevron-up"></i>
+</button>

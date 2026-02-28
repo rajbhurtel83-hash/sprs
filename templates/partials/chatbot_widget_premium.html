@@ -1,0 +1,1322 @@
+{% load static %}
+
+<!-- Premium AI Chatbot Widget -->
+<div class="chatbot-container" id="chatbotContainer">
+    <!-- Chatbot Toggle Button -->
+    <button class="chatbot-toggle" id="chatbotToggle" title="Chat with AI Assistant">
+        <span class="chatbot-toggle-icon">
+            <i class="bi bi-chat-dots-fill"></i>
+        </span>
+        <span class="chatbot-toggle-close">
+            <i class="bi bi-x-lg"></i>
+        </span>
+        <span class="chatbot-notification" id="chatbotNotification">1</span>
+    </button>
+
+    <!-- Chatbot Window -->
+    <div class="chatbot-window" id="chatbotWindow">
+        <!-- Header -->
+        <div class="chatbot-header">
+            <div class="chatbot-header-left">
+                <div class="chatbot-avatar">
+                    <i class="bi bi-robot"></i>
+                    <span class="chatbot-status"></span>
+                </div>
+                <div class="chatbot-header-info">
+                    <h6>SPRS AI Assistant</h6>
+                    <span class="chatbot-status-text" id="chatbotStatusText">Online • Bilingual 🇳🇵</span>
+                </div>
+            </div>
+            <div class="chatbot-header-actions">
+                <!-- Language Toggle -->
+                <div class="lang-toggle" id="langToggle" title="Switch language">
+                    <button class="lang-btn active" id="langBtnEn" data-lang="english">EN</button>
+                    <button class="lang-btn" id="langBtnNp" data-lang="nepali">नेपा</button>
+                </div>
+                <button class="chatbot-header-btn" id="chatbotMinimize" title="Minimize">
+                    <i class="bi bi-dash-lg"></i>
+                </button>
+                <button class="chatbot-header-btn" id="chatbotClose" title="Close">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Messages Container -->
+        <div class="chatbot-messages" id="chatbotMessages">
+            <!-- Welcome Message (English) -->
+            <div class="chat-message bot" id="welcomeMsgEn">
+                <div class="chat-avatar"><i class="bi bi-robot"></i></div>
+                <div class="chat-content">
+                    <div class="chat-bubble">
+                        <p><strong>Namaste! 🙏</strong> I'm Sasha, your bilingual real estate assistant.</p>
+                        <p>I can help you find rental properties in <strong>English or नेपाली</strong>!</p>
+                        <p class="mb-1"><strong>Try asking:</strong></p>
+                        <ul class="chat-examples">
+                            <li onclick="sendQuickMessage('Find rooms in Kathmandu under 15000')">
+                                <i class="bi bi-search me-1"></i>Find rooms in Kathmandu under 15000
+                            </li>
+                            <li onclick="sendQuickMessage('काठमाडौंमा फ्ल्याट चाहिन्छ')">
+                                <i class="bi bi-building me-1"></i>काठमाडौंमा फ्ल्याट चाहिन्छ
+                            </li>
+                            <li onclick="sendQuickMessage('Houses for family in Lalitpur')">
+                                <i class="bi bi-house me-1"></i>Houses for family in Lalitpur
+                            </li>
+                        </ul>
+                    </div>
+                    <span class="chat-time">Just now</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Suggestions Area -->
+        <div class="chatbot-suggestions" id="chatbotSuggestions">
+            <!-- Quick suggestions loaded dynamically -->
+        </div>
+        
+        <!-- Input Area -->
+        <div class="chatbot-input-area">
+            <form id="chatbotForm" class="chatbot-form">
+                <div class="chatbot-input-wrapper">
+                    <input type="text" 
+                           class="chatbot-input" 
+                           id="chatbotInput" 
+                           placeholder="Ask me about properties..."
+                           autocomplete="off">
+                    <button type="button" class="chatbot-voice-btn" id="voiceBtn" title="Voice input">
+                        <i class="bi bi-mic"></i>
+                    </button>
+                </div>
+                <button type="submit" class="chatbot-send-btn" id="chatbotSend" title="Send">
+                    <i class="bi bi-send-fill"></i>
+                </button>
+            </form>
+            <div class="chatbot-powered">
+                <i class="bi bi-lightning-charge-fill"></i> Powered by AI
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chatbot Styles -->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* ══════════════════════════════════════════════════════════════
+   HIMALAYAN MIDNIGHT GOLD — SPRS Premium Chatbot
+   Inspired by: Newar Palace Architecture × Modern Glass Tech
+   ══════════════════════════════════════════════════════════════ */
+:root {
+    --gold:          #C9A35A;
+    --gold-light:    #F0CC7A;
+    --gold-dim:      rgba(201,163,90,0.18);
+    --gold-glow:     rgba(240,204,122,0.22);
+    --crimson:       #DC143C;
+    --crimson-deep:  #8B0A24;
+    --crimson-soft:  rgba(220,20,60,0.18);
+    --midnight:      #06091A;
+    --deep-navy:     #0C1228;
+    --navy:          #111B35;
+    --glass:         rgba(11,18,38,0.96);
+    --border-gold:   rgba(201,163,90,0.25);
+    --border-dim:    rgba(255,255,255,0.06);
+    --text-bright:   #F4F0FF;
+    --text-dim:      rgba(212,216,240,0.55);
+    --teal:          #00CBA7;
+    --radius-xl:     24px;
+    --radius-lg:     16px;
+    --radius-md:     12px;
+}
+
+/* ── Container ─────────────────────────────────────────────── */
+.chatbot-container {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    z-index: 9999;
+    font-family: 'Inter', 'Segoe UI', -apple-system, sans-serif;
+}
+
+/* ── Toggle Button — Golden Orbit ──────────────────────────── */
+.chatbot-toggle {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #DC143C 0%, #9B0B28 60%, #C41230 100%);
+    border: none;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: all 0.4s cubic-bezier(.34,1.56,.64,1);
+    box-shadow:
+        0 0 0 0 rgba(220,20,60,0.4),
+        0 8px 32px rgba(220,20,60,0.5),
+        0 2px 8px rgba(0,0,0,0.6),
+        inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+/* Orbiting gold ring */
+.chatbot-toggle::before {
+    content: '';
+    position: absolute;
+    inset: -5px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    border-top-color: var(--gold-light);
+    border-right-color: var(--gold);
+    animation: orbit 3s linear infinite;
+    opacity: 0.85;
+}
+
+/* Glow pulse ring */
+.chatbot-toggle::after {
+    content: '';
+    position: absolute;
+    inset: -12px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(220,20,60,0.15) 0%, transparent 70%);
+    animation: orb-breathe 2.4s ease-in-out infinite;
+}
+
+.chatbot-toggle:hover {
+    transform: scale(1.12);
+    box-shadow:
+        0 0 0 6px rgba(220,20,60,0.12),
+        0 12px 40px rgba(220,20,60,0.6),
+        0 2px 8px rgba(0,0,0,0.6),
+        inset 0 1px 0 rgba(255,255,255,0.25);
+}
+
+.chatbot-toggle-icon,
+.chatbot-toggle-close {
+    font-size: 1.5rem;
+    transition: all 0.35s cubic-bezier(.34,1.56,.64,1);
+    position: relative;
+    z-index: 1;
+}
+
+.chatbot-toggle-close {
+    position: absolute;
+    opacity: 0;
+    transform: rotate(90deg) scale(0.5);
+}
+
+.chatbot-container.open .chatbot-toggle-icon {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.5);
+}
+
+.chatbot-container.open .chatbot-toggle-close {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+}
+
+.chatbot-notification {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 22px;
+    height: 22px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    border-radius: 50%;
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: var(--midnight);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(201,163,90,0.5);
+    z-index: 2;
+}
+
+/* ── Chat Window — Obsidian Glass ──────────────────────────── */
+.chatbot-window {
+    position: absolute;
+    bottom: 80px;
+    right: 0;
+    width: 390px;
+    height: 580px;
+    max-height: calc(100vh - 120px);
+    background: var(--glass);
+    border-radius: var(--radius-xl);
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(24px) scale(0.93);
+    transition: all 0.4s cubic-bezier(.34,1.2,.64,1);
+    overflow: hidden;
+    border: 1px solid var(--border-gold);
+    box-shadow:
+        0 0 0 1px rgba(255,255,255,0.04),
+        0 32px 80px rgba(0,0,0,0.75),
+        0 8px 32px rgba(0,0,0,0.5),
+        inset 0 1px 0 rgba(201,163,90,0.12),
+        0 0 60px rgba(220,20,60,0.06);
+}
+
+.chatbot-container.open .chatbot-window {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+
+/* ── Header — Celestial Palace ──────────────────────────────── */
+.chatbot-header {
+    padding: 18px 20px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: white;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: linear-gradient(135deg,
+        #0E1628 0%,
+        #141C35 40%,
+        #10193A 70%,
+        #0B1120 100%);
+    border-bottom: 1px solid var(--border-gold);
+}
+
+/* Ornamental shimmer sweep */
+.chatbot-header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg,
+        transparent 30%,
+        rgba(201,163,90,0.06) 48%,
+        rgba(240,204,122,0.1) 52%,
+        transparent 70%);
+    animation: header-shimmer 4s ease-in-out infinite;
+    pointer-events: none;
+}
+
+/* Gold top border accent */
+.chatbot-header::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        var(--gold) 30%,
+        var(--gold-light) 50%,
+        var(--gold) 70%,
+        transparent 100%);
+    animation: gold-line-flow 3s ease-in-out infinite;
+}
+
+.chatbot-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    z-index: 1;
+}
+
+.chatbot-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #DC143C 0%, #8B0A1E 70%, #C41230 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    position: relative;
+    flex-shrink: 0;
+    box-shadow:
+        0 0 0 2px var(--gold-dim),
+        0 4px 16px rgba(220,20,60,0.4),
+        inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+/* Spinning gold ring around avatar */
+.chatbot-avatar::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 1.5px solid transparent;
+    border-top-color: var(--gold);
+    border-bottom-color: var(--gold-light);
+    animation: orbit 4s linear infinite;
+}
+
+.chatbot-status {
+    position: absolute;
+    bottom: 1px;
+    right: 1px;
+    width: 11px;
+    height: 11px;
+    background: var(--teal);
+    border-radius: 50%;
+    border: 2px solid #0E1628;
+    box-shadow: 0 0 6px var(--teal);
+    animation: status-pulse 2s ease-in-out infinite;
+}
+
+.chatbot-header-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.chatbot-header-info h6 {
+    margin: 0;
+    font-family: 'Playfair Display', Georgia, serif;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.02em;
+    background: linear-gradient(135deg, var(--gold-light) 0%, #fff 50%, var(--gold) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.2;
+}
+
+.chatbot-status-text {
+    font-size: 0.7rem;
+    color: var(--teal);
+    font-weight: 500;
+    letter-spacing: 0.01em;
+}
+
+.chatbot-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+    z-index: 1;
+}
+
+.chatbot-header-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+}
+
+.chatbot-header-btn:hover {
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.15);
+    color: white;
+}
+
+/* ── Messages Area ──────────────────────────────────────────── */
+.chatbot-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 18px 16px;
+    scroll-behavior: smooth;
+    background:
+        radial-gradient(ellipse 80% 50% at 50% 0%, rgba(201,163,90,0.04) 0%, transparent 60%),
+        linear-gradient(180deg, #080C1A 0%, #0A0F1E 100%);
+}
+
+/* Gold scrollbar */
+.chatbot-messages::-webkit-scrollbar { width: 3px; }
+.chatbot-messages::-webkit-scrollbar-track { background: transparent; }
+.chatbot-messages::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--gold), var(--crimson));
+    border-radius: 4px;
+}
+
+.chat-message {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 18px;
+    animation: msg-in 0.35s cubic-bezier(.34,1.2,.64,1) both;
+}
+
+.chat-message.user {
+    flex-direction: row-reverse;
+}
+
+.chat-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #DC143C, #8B0A1E);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    box-shadow: 0 3px 10px rgba(220,20,60,0.35);
+    border: 1px solid rgba(220,20,60,0.4);
+}
+
+.chat-message.user .chat-avatar {
+    background: linear-gradient(145deg, #1B3A7A, #0D2150);
+    box-shadow: 0 3px 10px rgba(29,57,122,0.4);
+    border-color: rgba(80,120,200,0.3);
+}
+
+.chat-content {
+    max-width: 78%;
+}
+
+/* ── Chat Bubbles — Glass Obsidian ──────────────────────────── */
+.chat-bubble {
+    background: linear-gradient(135deg,
+        rgba(22,32,60,0.95) 0%,
+        rgba(18,26,50,0.98) 100%);
+    padding: 13px 16px;
+    border-radius: 18px;
+    border-top-left-radius: 4px;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--text-bright);
+    border: 1px solid var(--border-gold);
+    box-shadow:
+        0 4px 20px rgba(0,0,0,0.35),
+        inset 0 1px 0 rgba(255,255,255,0.05);
+    position: relative;
+    overflow: hidden;
+}
+
+.chat-message.user .chat-bubble {
+    background: linear-gradient(135deg, #C0102F 0%, #8B0A1E 60%, #A50E28 100%);
+    color: white;
+    border-radius: 18px;
+    border-top-right-radius: 4px;
+    border-color: rgba(255,100,120,0.2);
+    box-shadow: 0 4px 20px rgba(220,20,60,0.35), inset 0 1px 0 rgba(255,255,255,0.15);
+}
+
+.chat-bubble p { margin: 0 0 8px; color: var(--text-bright); }
+.chat-bubble strong { color: var(--gold-light); }
+.chat-bubble em { color: var(--teal); font-style: normal; font-weight: 500; }
+.chat-bubble p:last-child { margin-bottom: 0; }
+
+.chat-time {
+    font-size: 0.67rem;
+    color: rgba(170,176,210,0.38);
+    margin-top: 5px;
+    display: block;
+    letter-spacing: 0.02em;
+}
+
+.chat-message.user .chat-time { text-align: right; }
+
+/* ── Quick Examples ─────────────────────────────────────────── */
+.chat-examples {
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.chat-examples li {
+    background: rgba(201,163,90,0.07);
+    border: 1px solid rgba(201,163,90,0.2);
+    padding: 9px 13px;
+    border-radius: var(--radius-md);
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    color: rgba(220,228,255,0.82);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.chat-examples li i { color: var(--gold); font-size: 0.8rem; }
+
+.chat-examples li:hover {
+    background: rgba(201,163,90,0.15);
+    border-color: var(--gold);
+    color: var(--gold-light);
+    transform: translateX(4px);
+}
+
+/* ── Property Cards ─────────────────────────────────────────── */
+.chat-property-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.chat-property-card {
+    background: linear-gradient(135deg, rgba(20,28,54,0.98) 0%, rgba(14,22,44,1) 100%);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-gold);
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(.34,1.2,.64,1);
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+}
+
+.chat-property-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    opacity: 0.5;
+}
+
+.chat-property-card:hover {
+    border-color: var(--gold);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.5), 0 0 24px rgba(201,163,90,0.08);
+}
+
+.chat-property-img {
+    width: 76px;
+    height: 60px;
+    border-radius: 10px;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 1px solid var(--border-gold);
+}
+
+.chat-property-img-placeholder {
+    width: 76px;
+    height: 60px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.04);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,0.2);
+    border: 1px dashed var(--border-gold);
+}
+
+.chat-property-info { flex: 1; min-width: 0; }
+
+.chat-property-title {
+    font-weight: 700;
+    font-size: 0.84rem;
+    color: var(--text-bright);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 3px;
+}
+
+.chat-property-location {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    margin-bottom: 3px;
+}
+.chat-property-location i { color: var(--gold); }
+
+.chat-property-price {
+    font-weight: 800;
+    color: var(--gold-light);
+    font-size: 0.88rem;
+}
+
+/* ── Map Button ─────────────────────────────────────────────── */
+.chat-map-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px;
+    background: linear-gradient(135deg, #0E2456 0%, #1A3A7A 100%);
+    color: rgba(200,215,255,0.9);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.82rem;
+    margin-top: 12px;
+    transition: all 0.25s ease;
+    border: 1px solid rgba(80,130,220,0.25);
+}
+
+.chat-map-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(14,36,86,0.5);
+    color: white;
+    border-color: rgba(80,130,220,0.5);
+}
+
+/* ── Suggestions ────────────────────────────────────────────── */
+.chatbot-suggestions {
+    padding: 10px 14px;
+    display: none;
+    gap: 7px;
+    flex-wrap: wrap;
+    background: rgba(10,15,30,0.98);
+    border-top: 1px solid var(--border-dim);
+    flex-shrink: 0;
+}
+
+.chatbot-suggestions.show { display: flex; }
+
+.suggestion-chip {
+    padding: 6px 14px;
+    background: rgba(201,163,90,0.07);
+    border: 1px solid var(--border-gold);
+    border-radius: 20px;
+    font-size: 0.77rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: rgba(201,163,90,0.82);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.suggestion-chip:hover {
+    background: rgba(201,163,90,0.18);
+    border-color: var(--gold);
+    color: var(--gold-light);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(201,163,90,0.15);
+}
+
+/* ── Input Area ─────────────────────────────────────────────── */
+.chatbot-input-area {
+    padding: 14px 16px 12px;
+    background: rgba(8,12,26,0.99);
+    border-top: 1px solid var(--border-dim);
+    flex-shrink: 0;
+}
+
+.chatbot-form {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.chatbot-input-wrapper {
+    flex: 1;
+    position: relative;
+}
+
+.chatbot-input {
+    width: 100%;
+    padding: 11px 46px 11px 18px;
+    background: rgba(18,26,50,0.95);
+    border: 1.5px solid rgba(201,163,90,0.2);
+    border-radius: 25px;
+    font-size: 0.875rem;
+    color: var(--text-bright);
+    transition: all 0.25s ease;
+    font-family: 'Inter', sans-serif;
+    caret-color: var(--gold);
+}
+
+.chatbot-input::placeholder { color: rgba(180,188,220,0.35); }
+
+.chatbot-input:focus {
+    outline: none;
+    border-color: var(--gold);
+    background: rgba(20,30,58,0.98);
+    box-shadow: 0 0 0 3px rgba(201,163,90,0.1), inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+.chatbot-voice-btn {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: rgba(180,188,220,0.35);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chatbot-voice-btn:hover { color: var(--gold); }
+
+.chatbot-voice-btn.listening {
+    color: var(--crimson);
+    animation: voice-pulse 1s ease infinite;
+}
+
+.chatbot-send-btn {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #DC143C 0%, #8B0A1E 100%);
+    border: 1px solid rgba(255,100,120,0.25);
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(.34,1.56,.64,1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 16px rgba(220,20,60,0.4);
+}
+
+.chatbot-send-btn:hover {
+    transform: scale(1.12) rotate(-5deg);
+    box-shadow: 0 6px 24px rgba(220,20,60,0.55);
+}
+
+.chatbot-send-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.chatbot-powered {
+    text-align: center;
+    font-size: 0.65rem;
+    color: rgba(201,163,90,0.3);
+    margin-top: 8px;
+    letter-spacing: 0.05em;
+    font-weight: 500;
+}
+
+.chatbot-powered i { color: var(--gold); opacity: 0.6; }
+
+/* ── Typing Indicator ───────────────────────────────────────── */
+.typing-indicator {
+    display: flex;
+    gap: 5px;
+    padding: 6px 2px;
+    align-items: center;
+}
+
+.typing-indicator span {
+    width: 7px;
+    height: 7px;
+    background: var(--gold);
+    border-radius: 50%;
+    animation: typing-bounce 1.4s ease-in-out infinite;
+    opacity: 0.4;
+}
+
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; background: var(--gold-light); }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+/* ── Language Toggle ────────────────────────────────────────── */
+.lang-toggle {
+    display: flex;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border-gold);
+    border-radius: 20px;
+    padding: 2px;
+    gap: 2px;
+    margin-right: 4px;
+}
+
+.lang-btn {
+    padding: 4px 11px;
+    border: none;
+    border-radius: 16px;
+    background: transparent;
+    color: rgba(255,255,255,0.45);
+    font-size: 0.7rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    line-height: 1;
+    letter-spacing: 0.03em;
+}
+
+.lang-btn.active {
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    color: var(--midnight);
+    box-shadow: 0 2px 8px rgba(201,163,90,0.35);
+}
+
+.lang-btn:hover:not(.active) {
+    color: rgba(255,255,255,0.75);
+    background: rgba(255,255,255,0.08);
+}
+
+/* ── Lang Badge ─────────────────────────────────────────────── */
+.lang-detected {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.66rem;
+    padding: 3px 9px;
+    border-radius: 10px;
+    background: rgba(0,201,167,0.1);
+    color: var(--teal);
+    font-weight: 700;
+    margin-bottom: 8px;
+    border: 1px solid rgba(0,201,167,0.2);
+    letter-spacing: 0.03em;
+}
+
+/* ── Property Card Extras ───────────────────────────────────── */
+.chat-property-badge {
+    display: inline-block;
+    font-size: 0.66rem;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: rgba(220,20,60,0.12);
+    color: #FF6B7A;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    border: 1px solid rgba(220,20,60,0.25);
+}
+
+.chat-property-rating {
+    color: var(--gold);
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-bottom: 2px;
+}
+
+.chat-property-desc {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chat-property-view-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 16px;
+    background: linear-gradient(135deg, #C0102F 0%, #8B0A1E 100%);
+    color: #fff;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.25s ease;
+    border: 1px solid rgba(255,100,120,0.2);
+    width: 100%;
+    box-shadow: 0 3px 12px rgba(220,20,60,0.3);
+}
+
+.chat-property-view-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(220,20,60,0.45);
+    color: white;
+}
+
+/* ── Keyframe Animations ────────────────────────────────────── */
+@keyframes orbit {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+@keyframes orb-breathe {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50%       { opacity: 0.7; transform: scale(1.15); }
+}
+
+@keyframes header-shimmer {
+    0%   { transform: translateX(-100%); }
+    40%  { transform: translateX(100%); }
+    100% { transform: translateX(100%); }
+}
+
+@keyframes gold-line-flow {
+    0%   { opacity: 0.5; }
+    50%  { opacity: 1; }
+    100% { opacity: 0.5; }
+}
+
+@keyframes status-pulse {
+    0%, 100% { box-shadow: 0 0 4px var(--teal); }
+    50%       { box-shadow: 0 0 10px var(--teal), 0 0 20px rgba(0,203,167,0.3); }
+}
+
+@keyframes msg-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes typing-bounce {
+    0%, 100% { transform: translateY(0);    opacity: 0.4; }
+    50%       { transform: translateY(-7px); opacity: 1;   }
+}
+
+@keyframes voice-pulse {
+    0%, 100% { transform: translateY(-50%) scale(1); }
+    50%       { transform: translateY(-50%) scale(1.15); }
+}
+
+/* ── Mobile ─────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+    .chatbot-window {
+        width: calc(100vw - 18px);
+        height: calc(100vh - 110px);
+        right: -17px;
+        bottom: 78px;
+        border-radius: 20px;
+    }
+    .chatbot-container { right: 16px; bottom: 16px; }
+}
+</style>
+
+<!-- Chatbot JavaScript -->
+<script>
+const CHATBOT_URL = '/chatbot/chat/';
+const CSRF_TOKEN = '{{ csrf_token }}';
+
+(function () {
+    'use strict';
+
+    // ── DOM references ────────────────────────────────────────────────────────
+    const container       = document.getElementById('chatbotContainer');
+    const toggleBtn       = document.getElementById('chatbotToggle');
+    const closeBtn        = document.getElementById('chatbotClose');
+    const minimizeBtn     = document.getElementById('chatbotMinimize');
+    const chatForm        = document.getElementById('chatbotForm');
+    const chatInput       = document.getElementById('chatbotInput');
+    const messagesDiv     = document.getElementById('chatbotMessages');
+    const suggestionsDiv  = document.getElementById('chatbotSuggestions');
+    const voiceBtn        = document.getElementById('voiceBtn');
+    const statusText      = document.getElementById('chatbotStatusText');
+    const langBtnEn       = document.getElementById('langBtnEn');
+    const langBtnNp       = document.getElementById('langBtnNp');
+
+    // ── State ─────────────────────────────────────────────────────────────────
+    let conversationHistory = [];
+    let isProcessing        = false;
+    let selectedLanguage    = localStorage.getItem('sprs_chat_lang') || 'auto';
+
+    // ── Language toggle setup ─────────────────────────────────────────────────
+    function applyLang(lang) {
+        selectedLanguage = lang;
+        localStorage.setItem('sprs_chat_lang', lang);
+
+        // Update button active states
+        langBtnEn.classList.toggle('active', lang === 'english' || lang === 'auto');
+        langBtnNp.classList.toggle('active', lang === 'nepali');
+
+        // Update placeholder & status
+        if (lang === 'nepali') {
+            chatInput.placeholder = 'सम्पत्ति बारे सोध्नुहोस्...';
+            statusText.textContent = 'अनलाइन • नेपाली/English 🇳🇵';
+        } else {
+            chatInput.placeholder = 'Ask me about properties...';
+            statusText.textContent = 'Online • Bilingual 🇳🇵';
+        }
+    }
+
+    applyLang(selectedLanguage); // apply on load
+
+    langBtnEn.addEventListener('click', () => applyLang('english'));
+    langBtnNp.addEventListener('click', () => applyLang('nepali'));
+
+    // ── Initial smart suggestions by language ─────────────────────────────────
+    const INITIAL_SUGGESTIONS_EN = [
+        'Rooms in Kathmandu',
+        'Flats under Rs 20,000',
+        'Family house in Lalitpur',
+        'Commercial space Pokhara',
+    ];
+    const INITIAL_SUGGESTIONS_NP = [
+        'काठमाडौंमा कोठा',
+        'Rs. २०,००० भन्दा कमको फ्ल्याट',
+        'ललितपुरमा परिवारको घर',
+        'पोखरामा व्यावसायिक ठाउँ',
+    ];
+
+    // ── Toggle chatbot ─────────────────────────────────────────────────────────
+    toggleBtn.addEventListener('click', function () {
+        container.classList.toggle('open');
+        if (container.classList.contains('open')) {
+            chatInput.focus();
+            document.getElementById('chatbotNotification').style.display = 'none';
+            // Show initial suggestions
+            const init = selectedLanguage === 'nepali' ? INITIAL_SUGGESTIONS_NP : INITIAL_SUGGESTIONS_EN;
+            showSuggestions(init);
+        }
+    });
+
+    closeBtn.addEventListener('click', ()   => container.classList.remove('open'));
+    minimizeBtn.addEventListener('click', () => container.classList.remove('open'));
+
+    // ── Form submit ────────────────────────────────────────────────────────────
+    chatForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const msg = chatInput.value.trim();
+        if (!msg || isProcessing) return;
+        sendMessage(msg);
+    });
+
+    // ── Send message ───────────────────────────────────────────────────────────
+    function sendMessage(message) {
+        if (isProcessing) return;
+
+        addMessage(message, 'user');
+        chatInput.value = '';
+        chatInput.disabled = true;
+        isProcessing = true;
+        conversationHistory.push({ role: 'user', content: message });
+
+        showTyping();
+        hideSuggestions();
+
+        fetch(CHATBOT_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': CSRF_TOKEN,
+            },
+            body: JSON.stringify({
+                message: message,
+                history: conversationHistory.slice(-8),
+                language: selectedLanguage,
+            }),
+        })
+        .then(r => r.json())
+        .then(data => {
+            hideTyping();
+            isProcessing = false;
+            chatInput.disabled = false;
+            chatInput.focus();
+
+            conversationHistory.push({ role: 'assistant', content: data.response });
+
+            // Auto-switch UI language if server detected Nepali
+            if (data.detected_language === 'nepali' && selectedLanguage === 'auto') {
+                langBtnNp.classList.add('active');
+                langBtnEn.classList.remove('active');
+                chatInput.placeholder = 'सम्पत्ति बारे सोध्नुहोस्...';
+            }
+
+            addBotMessage(data.response, data.properties || [], data.detected_language);
+
+            const suggestions = data.suggestions && data.suggestions.length
+                ? data.suggestions
+                : (data.detected_language === 'nepali' ? INITIAL_SUGGESTIONS_NP : INITIAL_SUGGESTIONS_EN);
+            showSuggestions(suggestions);
+        })
+        .catch(err => {
+            hideTyping();
+            isProcessing = false;
+            chatInput.disabled = false;
+            chatInput.focus();
+            const errMsg = selectedLanguage === 'nepali'
+                ? 'माफ गर्नुहोस्, एउटा समस्या आयो। पुनः प्रयास गर्नुहोस्।'
+                : 'Sorry, something went wrong. Please try again.';
+            addMessage(errMsg, 'bot');
+            console.error('Chat error:', err);
+        });
+    }
+
+    // ── Add user/bot text message ──────────────────────────────────────────────
+    function addMessage(text, type) {
+        const div = document.createElement('div');
+        div.className = 'chat-message ' + type;
+
+        const avatar = type === 'user'
+            ? '<div class="chat-avatar"><i class="bi bi-person"></i></div>'
+            : '<div class="chat-avatar"><i class="bi bi-robot"></i></div>';
+
+        div.innerHTML = `
+            ${avatar}
+            <div class="chat-content">
+                <div class="chat-bubble">${escapeHtml(text)}</div>
+                <span class="chat-time">${getTimeString()}</span>
+            </div>`;
+
+        messagesDiv.appendChild(div);
+        scrollToBottom();
+    }
+
+    // ── Add bot message with optional property cards ───────────────────────────
+    function addBotMessage(text, properties, detectedLang) {
+        const div = document.createElement('div');
+        div.className = 'chat-message bot';
+        const isNp = detectedLang === 'nepali';
+
+        let html = `
+            <div class="chat-avatar"><i class="bi bi-robot"></i></div>
+            <div class="chat-content">
+                <div class="chat-bubble">`;
+
+        // Language badge
+        if (detectedLang) {
+            const badge = isNp ? '🇳🇵 नेपाली' : '🇬🇧 English';
+            html += `<div class="lang-detected">${badge}</div>`;
+        }
+
+        html += formatMessage(text);
+
+        // Property cards
+        if (properties && properties.length > 0) {
+            html += '<div class="chat-property-grid" style="margin-top:10px;">';
+
+            properties.slice(0, 5).forEach(p => {
+                const imgHtml = p.image
+                    ? `<img src="${p.image}" class="chat-property-img" alt="${escapeHtml(p.title)}">`
+                    : `<div class="chat-property-img-placeholder"><i class="bi bi-image"></i></div>`;
+
+                // Rating stars
+                const rating = parseFloat(p.rating) || 0;
+                let stars = '';
+                for (let i = 1; i <= 5; i++) {
+                    stars += i <= Math.round(rating)
+                        ? '<i class="bi bi-star-fill"></i>'
+                        : '<i class="bi bi-star"></i>';
+                }
+
+                const location = [p.municipality, p.district].filter(Boolean).join(', ');
+                const viewLabel = isNp ? 'हेर्नुहोस्' : 'View Property';
+
+                html += `
+                    <div class="chat-property-card" style="flex-direction:column; padding:0; overflow:hidden;">
+                        <div style="display:flex; gap:10px; padding:10px; padding-bottom:6px;">
+                            ${imgHtml}
+                            <div class="chat-property-info">
+                                <span class="chat-property-badge">${escapeHtml(p.property_type || '')}</span>
+                                <div class="chat-property-title">${escapeHtml(p.title)}</div>
+                                <div class="chat-property-location"><i class="bi bi-geo-alt"></i> ${escapeHtml(location)}</div>
+                                <div class="chat-property-rating">${stars}
+                                    ${rating > 0 ? `<span style="color:#999;font-size:.7rem;">(${rating.toFixed(1)})</span>` : ''}
+                                </div>
+                                <div class="chat-property-price">Rs. ${Number(p.price).toLocaleString()}<small style="font-weight:400;color:#888;">/mo</small></div>
+                            </div>
+                        </div>
+                        <div style="padding:0 10px 10px;">
+                            <a href="${p.url}" class="chat-property-view-btn" target="_blank">
+                                <i class="bi bi-box-arrow-up-right me-1"></i>${viewLabel}
+                            </a>
+                        </div>
+                    </div>`;
+            });
+
+            html += '</div>';
+
+            // "View all on map" link
+            if (properties.some(p => p.has_location)) {
+                const mapLabel = isNp ? 'नक्सामा सबै हेर्नुहोस्' : 'View All on Map';
+                html += `<a href="/properties/map/" class="chat-map-btn">
+                    <i class="bi bi-map"></i> ${mapLabel}</a>`;
+            }
+
+            // "No results" state
+        } else if ((text && text.includes('माफ')) || (text && text.toLowerCase().includes('sorry, no'))) {
+            const altLabel = isNp ? 'सबै सम्पत्ति ब्राउज गर्नुहोस्' : 'Browse All Properties';
+            html += `<div style="margin-top:10px;">
+                <a href="/properties/" class="chat-map-btn" style="background:linear-gradient(135deg,#6b7280,#4b5563);">
+                    <i class="bi bi-grid-3x3-gap"></i> ${altLabel}
+                </a></div>`;
+        }
+
+        html += `</div><span class="chat-time">${getTimeString()}</span></div>`;
+        div.innerHTML = html;
+        messagesDiv.appendChild(div);
+        scrollToBottom();
+    }
+
+    // ── Typing indicator ───────────────────────────────────────────────────────
+    function showTyping() {
+        const div = document.createElement('div');
+        div.className = 'chat-message bot';
+        div.id = 'typingIndicator';
+        div.innerHTML = `
+            <div class="chat-avatar"><i class="bi bi-robot"></i></div>
+            <div class="chat-content">
+                <div class="chat-bubble">
+                    <div class="typing-indicator"><span></span><span></span><span></span></div>
+                </div>
+            </div>`;
+        messagesDiv.appendChild(div);
+        scrollToBottom();
+    }
+
+    function hideTyping() {
+        const el = document.getElementById('typingIndicator');
+        if (el) el.remove();
+    }
+
+    // ── Suggestions ────────────────────────────────────────────────────────────
+    function showSuggestions(suggestions) {
+        suggestionsDiv.innerHTML = suggestions.slice(0, 4).map(s =>
+            `<button class="suggestion-chip" onclick="sendQuickMessage('${escapeHtml(s)}')">${escapeHtml(s)}</button>`
+        ).join('');
+        suggestionsDiv.classList.add('show');
+    }
+
+    function hideSuggestions() {
+        suggestionsDiv.classList.remove('show');
+    }
+
+    // ── Voice input ────────────────────────────────────────────────────────────
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SR();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        voiceBtn.addEventListener('click', function () {
+            recognition.lang = selectedLanguage === 'nepali' ? 'ne-NP' : 'en-US';
+            if (voiceBtn.classList.contains('listening')) {
+                recognition.stop();
+            } else {
+                recognition.start();
+                voiceBtn.classList.add('listening');
+            }
+        });
+
+        recognition.onresult = e => {
+            chatInput.value = e.results[0][0].transcript;
+            voiceBtn.classList.remove('listening');
+        };
+        recognition.onerror  = () => voiceBtn.classList.remove('listening');
+        recognition.onend    = () => voiceBtn.classList.remove('listening');
+    } else {
+        voiceBtn.style.display = 'none';
+    }
+
+    // ── Utility functions ──────────────────────────────────────────────────────
+    function scrollToBottom() {
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const d = document.createElement('div');
+        d.textContent = String(text);
+        return d.innerHTML;
+    }
+
+    function formatMessage(text) {
+        return String(text)
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/\n/g, '<br>')
+            .replace(/^• /gm, '<br>• ')
+            .replace(/^- /gm, '<br>• ');
+    }
+
+    function getTimeString() {
+        return new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    }
+
+    // Expose globally
+    window.sendQuickMessage = function (message) {        chatInput.value = message;
+        sendMessage(message);
+    };
+})();
+</script>

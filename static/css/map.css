@@ -1,0 +1,286 @@
+/* ==========================================================================
+   Map Explorer Styles
+   ========================================================================== */
+
+.map-explorer-container {
+    display: flex;
+    height: calc(100vh - 70px);
+    overflow: hidden;
+    position: relative;
+}
+
+/* Sidebar */
+.map-sidebar {
+    width: 380px;
+    min-width: 380px;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--color-gray-200);
+    z-index: 10;
+    transition: transform 0.3s ease;
+}
+
+.map-sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    border-bottom: 2px solid var(--color-crimson);
+    background: linear-gradient(135deg, #1A1A2E, #16213E);
+    color: #fff;
+}
+
+.map-sidebar-header h5 {
+    color: #fff;
+}
+
+.map-sidebar-body {
+    padding: 1rem 1.25rem;
+    overflow-y: auto;
+    border-bottom: 1px solid var(--color-gray-200);
+}
+
+.map-sidebar-results {
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* Property list items */
+.map-property-list {
+    overflow-y: auto;
+}
+
+.map-property-item {
+    padding: 0.875rem 1.25rem;
+    border-bottom: 1px solid var(--color-gray-100);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.map-property-item:hover {
+    background-color: rgba(220, 20, 60, 0.04);
+}
+
+.map-property-item.active {
+    background-color: rgba(220, 20, 60, 0.08);
+    border-left: 3px solid var(--color-crimson);
+}
+
+.map-property-thumb {
+    width: 80px;
+    height: 60px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.map-property-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.map-property-thumb .no-image {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-gray-100);
+    color: var(--color-gray-400);
+    font-size: 1.25rem;
+}
+
+/* Main map area */
+.map-main {
+    flex: 1;
+    position: relative;
+}
+
+.map-container {
+    width: 100%;
+    height: 100%;
+    background: var(--color-gray-100);
+}
+
+.map-toggle-btn {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    z-index: 5;
+    box-shadow: var(--shadow-md);
+}
+
+/* Info Panel (side panel when marker clicked) */
+.map-info-panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 360px;
+    height: 100%;
+    background: #fff;
+    box-shadow: -4px 0 20px rgba(0,0,0,0.1);
+    z-index: 15;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    overflow-y: auto;
+}
+
+.map-info-panel.open {
+    transform: translateX(0);
+}
+
+.map-panel-close {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    z-index: 5;
+}
+
+/* Panel property card */
+.panel-property-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.panel-property-content {
+    padding: 1.25rem;
+}
+
+.panel-property-title {
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    color: var(--color-dark);
+}
+
+.panel-property-price {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--color-crimson);
+    margin-bottom: 0.75rem;
+}
+
+.panel-property-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    color: var(--color-gray-500);
+}
+
+.panel-property-meta i {
+    color: var(--color-crimson);
+    margin-right: 0.35rem;
+    width: 16px;
+    text-align: center;
+}
+
+.panel-property-rating .bi-star-fill {
+    color: #ffc107;
+}
+
+.panel-property-rating .bi-star {
+    color: #dee2e6;
+}
+
+/* Map marker custom styles */
+.sprs-marker-pin {
+    width: 36px;
+    height: 36px;
+    border-radius: 50% 50% 50% 0;
+    background: #DC143C;
+    position: relative;
+    transform: rotate(-45deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(220, 20, 60, 0.4);
+    border: 2px solid #fff;
+}
+
+.sprs-marker-pin i {
+    transform: rotate(45deg);
+    color: #fff;
+    font-size: 14px;
+}
+
+.sprs-marker-pin.active {
+    background: #003893;
+    width: 42px;
+    height: 42px;
+    box-shadow: 0 3px 12px rgba(0, 56, 147, 0.5);
+}
+
+.sprs-marker-pin.active i {
+    font-size: 16px;
+}
+
+/* Leaflet popup custom */
+.map-popup {
+    padding: 4px 0;
+    line-height: 1.6;
+}
+
+.map-popup strong {
+    font-size: 0.9rem;
+}
+
+/* Cluster styles */
+.marker-cluster-small {
+    background-color: rgba(220, 20, 60, 0.3) !important;
+}
+.marker-cluster-small div {
+    background-color: rgba(220, 20, 60, 0.7) !important;
+    color: #fff !important;
+    font-weight: 700;
+}
+
+.marker-cluster-medium {
+    background-color: rgba(220, 20, 60, 0.4) !important;
+}
+.marker-cluster-medium div {
+    background-color: rgba(220, 20, 60, 0.8) !important;
+    color: #fff !important;
+    font-weight: 700;
+}
+
+.marker-cluster-large {
+    background-color: rgba(220, 20, 60, 0.5) !important;
+}
+.marker-cluster-large div {
+    background-color: rgba(220, 20, 60, 0.9) !important;
+    color: #fff !important;
+    font-weight: 700;
+}
+
+/* Responsive */
+@media (max-width: 991.98px) {
+    .map-sidebar {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        transform: translateX(-100%);
+        z-index: 20;
+        box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+    }
+    
+    .map-sidebar.open {
+        transform: translateX(0);
+    }
+    
+    .map-info-panel {
+        width: 100%;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .map-sidebar {
+        width: 100%;
+        min-width: 100%;
+    }
+}

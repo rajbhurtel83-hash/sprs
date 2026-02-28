@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Users{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Page Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
+        <div>
+            <h1 class="h2 fw-bold mb-1">
+                <i class="bi bi-people me-2"></i>Manage Users
+            </h1>
+            <p class="text-muted mb-0">View and manage all registered users on the platform.</p>
+        </div>
+        <div class="mt-3 mt-md-0">
+            <a href="{% url 'adminpanel:dashboard' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Role Filter -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body py-3">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <span class="fw-semibold text-muted small text-uppercase me-2">Filter by Role:</span>
+                <a href="{% url 'adminpanel:manage_users' %}"
+                   class="btn btn-sm {% if not current_role or current_role == 'all' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+                    All Users
+                </a>
+                <a href="{% url 'adminpanel:manage_users' %}?role=tenant"
+                   class="btn btn-sm {% if current_role == 'tenant' %}btn-info{% else %}btn-outline-secondary{% endif %}">
+                    <i class="bi bi-person me-1"></i>Tenants
+                </a>
+                <a href="{% url 'adminpanel:manage_users' %}?role=owner"
+                   class="btn btn-sm {% if current_role == 'owner' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+                    <i class="bi bi-person-badge me-1"></i>Owners
+                </a>
+                <a href="{% url 'adminpanel:manage_users' %}?role=admin"
+                   class="btn btn-sm {% if current_role == 'admin' %}btn-danger{% else %}btn-outline-secondary{% endif %}">
+                    <i class="bi bi-shield-check me-1"></i>Admins
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            {% if users %}
+            <div class="table-responsive">
+                <table class="table table-custom mb-0">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Full Name</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Date Joined</th>
+                            <th class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in users %}
+                        <tr>
+                            <td>
+                                <span class="fw-semibold">{{ u.username }}</span>
+                            </td>
+                            <td>
+                                <span class="text-muted">{{ u.email }}</span>
+                            </td>
+                            <td>
+                                {{ u.get_full_name|default:"-" }}
+                            </td>
+                            <td>
+                                {% if u.role == 'admin' %}
+                                <span class="badge bg-danger bg-opacity-10 text-danger">
+                                    <i class="bi bi-shield-check me-1"></i>Admin
+                                </span>
+                                {% elif u.role == 'owner' %}
+                                <span class="badge bg-primary bg-opacity-10 text-primary">
+                                    <i class="bi bi-person-badge me-1"></i>Owner
+                                </span>
+                                {% else %}
+                                <span class="badge bg-info bg-opacity-10 text-info">
+                                    <i class="bi bi-person me-1"></i>Tenant
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if u.is_active %}
+                                <span class="badge bg-success bg-opacity-10 text-success">
+                                    <i class="bi bi-check-circle me-1"></i>Active
+                                </span>
+                                {% else %}
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary">
+                                    <i class="bi bi-x-circle me-1"></i>Inactive
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small class="text-muted">{{ u.date_joined|date:"M d, Y" }}</small>
+                            </td>
+                            <td class="text-center">
+                                <form method="post" action="{% url 'adminpanel:toggle_user' u.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    {% if u.is_active %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Deactivate user"
+                                            onclick="return confirm('Are you sure you want to deactivate {{ u.username }}?');">
+                                        <i class="bi bi-person-x me-1"></i>Deactivate
+                                    </button>
+                                    {% else %}
+                                    <button type="submit" class="btn btn-sm btn-outline-success" title="Activate user"
+                                            onclick="return confirm('Are you sure you want to activate {{ u.username }}?');">
+                                        <i class="bi bi-person-check me-1"></i>Activate
+                                    </button>
+                                    {% endif %}
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if users.has_other_pages %}
+            <div class="card-footer bg-white border-top">
+                <nav aria-label="User listing pages">
+                    <ul class="pagination justify-content-center mb-0 py-2">
+                        {% if users.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% if current_role %}role={{ current_role }}&{% endif %}page={{ users.previous_page_number }}">
+                                <i class="bi bi-chevron-left"></i> Previous
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link"><i class="bi bi-chevron-left"></i> Previous</span>
+                        </li>
+                        {% endif %}
+
+                        {% for num in users.paginator.page_range %}
+                            {% if users.number == num %}
+                            <li class="page-item active" aria-current="page">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                            {% elif num > users.number|add:'-3' and num < users.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?{% if current_role %}role={{ current_role }}&{% endif %}page={{ num }}">{{ num }}</a>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if users.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% if current_role %}role={{ current_role }}&{% endif %}page={{ users.next_page_number }}">
+                                Next <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">Next <i class="bi bi-chevron-right"></i></span>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="empty-state py-5">
+                <i class="bi bi-people"></i>
+                <h5>No users found</h5>
+                <p class="text-muted">
+                    {% if current_role and current_role != 'all' %}
+                    No users with the role "{{ current_role }}" were found. Try a different filter.
+                    {% else %}
+                    No registered users on the platform yet.
+                    {% endif %}
+                </p>
+                {% if current_role and current_role != 'all' %}
+                <a href="{% url 'adminpanel:manage_users' %}" class="btn btn-primary">
+                    <i class="bi bi-x-circle me-1"></i>Clear Filter
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

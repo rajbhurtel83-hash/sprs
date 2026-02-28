@@ -1,0 +1,1872 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Map Explorer - Interactive Property Search{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/premium.css' %}">
+<style>
+/* Map Explorer Premium Styles */
+.map-explorer-wrapper {
+    display: flex;
+    height: calc(100vh - 76px);
+    overflow: hidden;
+}
+
+/* Sidebar */
+.map-sidebar {
+    width: 400px;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--color-gray-200);
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.05);
+    z-index: 100;
+    transition: transform 0.3s ease;
+}
+
+.map-sidebar.collapsed {
+    transform: translateX(-100%);
+}
+
+.sidebar-header {
+    padding: 20px;
+    background: var(--gradient-hero);
+    color: white;
+}
+
+.sidebar-header h5 {
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.sidebar-header p {
+    opacity: 0.8;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+/* Filter Section */
+.filter-section {
+    padding: 20px;
+    border-bottom: 1px solid var(--color-gray-200);
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+.filter-group {
+    margin-bottom: 15px;
+}
+
+.filter-group label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+    display: block;
+    color: var(--color-gray-600);
+}
+
+.filter-group input,
+.filter-group select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 2px solid var(--color-gray-200);
+    border-radius: 10px;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+    outline: none;
+    border-color: var(--color-crimson);
+    box-shadow: 0 0 0 3px rgba(220, 20, 60, 0.1);
+}
+
+.filter-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.filter-btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.filter-btn-primary {
+    background: var(--color-crimson);
+    color: white;
+    border: none;
+}
+
+.filter-btn-primary:hover {
+    background: var(--color-crimson-dark);
+}
+
+.filter-btn-secondary {
+    background: var(--color-gray-100);
+    color: var(--color-gray-600);
+    border: none;
+}
+
+.filter-btn-secondary:hover {
+    background: var(--color-gray-200);
+}
+
+/* Property List */
+.property-list-section {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.property-list-header {
+    padding: 15px 20px;
+    background: var(--color-gray-100);
+    border-bottom: 1px solid var(--color-gray-200);
+    font-weight: 600;
+    color: var(--color-gray-600);
+    font-size: 0.9rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.property-list-item {
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--color-gray-200);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    gap: 15px;
+}
+
+.property-list-item:hover {
+    background: rgba(220, 20, 60, 0.03);
+}
+
+.property-list-item.active {
+    background: rgba(220, 20, 60, 0.08);
+    border-left: 4px solid var(--color-crimson);
+}
+
+.property-list-image {
+    width: 90px;
+    height: 70px;
+    border-radius: 10px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.property-list-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.property-list-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.property-list-location {
+    font-size: 0.85rem;
+    color: var(--color-gray-500);
+    margin-bottom: 4px;
+}
+
+.property-list-price {
+    font-weight: 800;
+    color: var(--color-crimson);
+    font-size: 1rem;
+}
+
+/* Map Container */
+.map-container-wrapper {
+    flex: 1;
+    position: relative;
+}
+
+#googleMap {
+    width: 100%;
+    height: 100%;
+}
+
+/* Map Controls */
+.map-controls {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 10;
+    display: flex;
+    gap: 10px;
+}
+
+.map-control-btn {
+    padding: 12px 20px;
+    background: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.map-control-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.map-control-btn i {
+    font-size: 1.1rem;
+}
+
+/* Location Search */
+.location-search-box {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    width: 400px;
+    max-width: calc(100% - 40px);
+}
+
+.location-search-input {
+    width: 100%;
+    padding: 15px 20px 15px 50px;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+}
+
+.location-search-input:focus {
+    outline: none;
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.2);
+}
+
+.location-search-icon {
+    position: absolute;
+    left: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-gray-400);
+    font-size: 1.2rem;
+}
+
+/* Info Panel (Side Panel) */
+.info-panel {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 420px;
+    background: white;
+    box-shadow: -4px 0 30px rgba(0, 0, 0, 0.15);
+    z-index: 200;
+    transform: translateX(100%);
+    transition: transform 0.4s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.info-panel.open {
+    transform: translateX(0);
+}
+
+.info-panel-header {
+    position: relative;
+    padding: 0;
+}
+
+.info-panel-image {
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+}
+
+.info-panel-close {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+.info-panel-close:hover {
+    transform: scale(1.1);
+}
+
+.info-panel-badges {
+    position: absolute;
+    bottom: 15px;
+    left: 15px;
+    display: flex;
+    gap: 8px;
+}
+
+.info-panel-body {
+    padding: 25px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.info-panel-title {
+    font-size: 1.4rem;
+    font-weight: 800;
+    margin-bottom: 10px;
+}
+
+.info-panel-location {
+    display: flex;
+    align-items: center;
+    color: var(--color-gray-500);
+    margin-bottom: 15px;
+}
+
+.info-panel-location i {
+    color: var(--color-crimson);
+    margin-right: 8px;
+}
+
+.info-panel-price {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--color-crimson);
+    margin-bottom: 20px;
+}
+
+.info-panel-price small {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--color-gray-500);
+}
+
+.info-panel-features {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    padding: 20px 0;
+    border-top: 1px solid var(--color-gray-200);
+    border-bottom: 1px solid var(--color-gray-200);
+    margin-bottom: 20px;
+}
+
+.info-feature {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.info-feature i {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(220, 20, 60, 0.1);
+    color: var(--color-crimson);
+    border-radius: 10px;
+}
+
+.info-feature-text {
+    font-size: 0.9rem;
+}
+
+.info-feature-label {
+    color: var(--color-gray-500);
+    font-size: 0.8rem;
+}
+
+/* Directions Panel */
+.directions-panel {
+    background: var(--color-gray-100);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.directions-title {
+    font-weight: 700;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.directions-title i {
+    color: var(--color-royal-blue);
+}
+
+.directions-modes {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.direction-mode-btn {
+    flex: 1;
+    padding: 10px;
+    border: 2px solid var(--color-gray-200);
+    background: white;
+    border-radius: 10px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.direction-mode-btn:hover,
+.direction-mode-btn.active {
+    border-color: var(--color-royal-blue);
+    background: rgba(0, 56, 147, 0.05);
+}
+
+.direction-mode-btn i {
+    font-size: 1.3rem;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.direction-mode-btn span {
+    font-size: 0.75rem;
+    color: var(--color-gray-500);
+}
+
+.directions-info {
+    display: flex;
+    justify-content: space-between;
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+}
+
+.directions-info-item {
+    text-align: center;
+}
+
+.directions-info-value {
+    font-weight: 800;
+    font-size: 1.2rem;
+    color: var(--color-dark);
+}
+
+.directions-info-label {
+    font-size: 0.8rem;
+    color: var(--color-gray-500);
+}
+
+.get-directions-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--color-royal-blue);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.get-directions-btn:hover {
+    background: var(--color-navy);
+}
+
+/* Nearby Facilities */
+.nearby-section {
+    margin-top: 20px;
+}
+
+.nearby-title {
+    font-weight: 700;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nearby-title i {
+    color: var(--color-success);
+}
+
+.nearby-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.nearby-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    background: var(--color-gray-100);
+    border-radius: 10px;
+    font-size: 0.9rem;
+}
+
+.nearby-item i {
+    color: var(--color-royal-blue);
+}
+
+.nearby-item span {
+    font-weight: 600;
+}
+
+.nearby-item small {
+    color: var(--color-gray-500);
+    margin-left: auto;
+}
+
+/* Owner Contact */
+.owner-section {
+    padding: 20px;
+    background: var(--color-gray-100);
+    border-radius: 12px;
+    margin-top: 20px;
+}
+
+.owner-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.owner-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid white;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.owner-info h6 {
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
+.owner-info p {
+    font-size: 0.85rem;
+    color: var(--color-gray-500);
+    margin: 0;
+}
+
+.owner-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.owner-btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+}
+
+.owner-btn-message {
+    background: var(--color-royal-blue);
+    color: white;
+    border: none;
+}
+
+.owner-btn-message:hover {
+    background: var(--color-navy);
+    color: white;
+}
+
+.owner-btn-call {
+    background: white;
+    color: var(--color-dark);
+    border: 2px solid var(--color-gray-200);
+}
+
+.owner-btn-call:hover {
+    border-color: var(--color-success);
+    color: var(--color-success);
+}
+
+/* Info Panel Footer */
+.info-panel-footer {
+    padding: 20px;
+    border-top: 1px solid var(--color-gray-200);
+}
+
+.view-details-btn {
+    width: 100%;
+    padding: 15px;
+    background: var(--color-crimson);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+    text-decoration: none;
+}
+
+.view-details-btn:hover {
+    background: var(--color-crimson-dark);
+    color: white;
+}
+
+/* Map Legend */
+.map-legend {
+    position: absolute;
+    bottom: 30px;
+    left: 20px;
+    background: white;
+    padding: 15px 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+}
+
+.legend-title {
+    font-weight: 700;
+    font-size: 0.85rem;
+    margin-bottom: 10px;
+    color: var(--color-gray-600);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    margin-bottom: 5px;
+}
+
+.legend-marker {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.legend-marker.available {
+    background: var(--color-crimson);
+}
+
+.legend-marker.featured {
+    background: #FFD700;
+}
+
+.legend-marker.verified {
+    background: var(--color-success);
+}
+
+/* Custom Map Markers */
+.custom-marker {
+    position: relative;
+    width: 40px;
+    height: 50px;
+}
+
+.marker-pin {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background: var(--color-crimson);
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(220, 20, 60, 0.4);
+    transition: all 0.3s ease;
+}
+
+.marker-pin i {
+    transform: rotate(45deg);
+    color: white;
+    font-size: 1.1rem;
+}
+
+.marker-pin.featured {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+}
+
+.marker-pin.verified {
+    background: var(--color-success);
+}
+
+.marker-pin:hover,
+.marker-pin.active {
+    transform: rotate(-45deg) scale(1.2);
+}
+
+/* Mobile Responsive */
+@media (max-width: 991px) {
+    .map-explorer-wrapper {
+        flex-direction: column;
+    }
+    
+    .map-sidebar {
+        width: 100%;
+        height: auto;
+        max-height: 40vh;
+        position: relative;
+        transform: none;
+    }
+    
+    .map-sidebar.collapsed {
+        max-height: 60px;
+        overflow: hidden;
+    }
+    
+    .info-panel {
+        width: 100%;
+        height: 60vh;
+        top: auto;
+        bottom: 0;
+        transform: translateY(100%);
+    }
+    
+    .info-panel.open {
+        transform: translateY(0);
+    }
+    
+    .location-search-box {
+        width: calc(100% - 40px);
+    }
+    
+    .map-legend {
+        display: none;
+    }
+}
+
+/* Map Loading State */
+.map-loading {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 500;
+}
+
+.map-loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid var(--color-gray-200);
+    border-top-color: var(--color-crimson);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideOut {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0; }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.map-loading-text {
+    margin-top: 15px;
+    font-weight: 600;
+    color: var(--color-gray-600);
+}
+
+/* Property List Item Rating */
+.property-list-rating {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #555;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="map-explorer-wrapper">
+    <!-- Left Sidebar -->
+    <div class="map-sidebar" id="mapSidebar">
+        <div class="sidebar-header">
+            <h5><i class="bi bi-map me-2"></i>Property Map Explorer</h5>
+            <p>Find properties near you with interactive maps</p>
+        </div>
+        
+        <!-- Filters -->
+        <div class="filter-section">
+            <form id="mapFilterForm">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="filter-group">
+                            <label><i class="bi bi-geo-alt me-1"></i>District</label>
+                            <select name="district">
+                                <option value="">All Districts</option>
+                                <option value="Kathmandu">Kathmandu</option>
+                                <option value="Lalitpur">Lalitpur</option>
+                                <option value="Bhaktapur">Bhaktapur</option>
+                                <option value="Pokhara">Pokhara</option>
+                                <option value="Chitwan">Chitwan</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="filter-group">
+                            <label><i class="bi bi-building me-1"></i>Municipality</label>
+                            <input type="text" name="municipality" placeholder="e.g., Budhanilkantha">
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="filter-group">
+                            <label><i class="bi bi-house me-1"></i>Type</label>
+                            <select name="property_type">
+                                <option value="">All Types</option>
+                                <option value="room">Room</option>
+                                <option value="flat">Flat</option>
+                                <option value="apartment">Apartment</option>
+                                <option value="house">House</option>
+                                <option value="land">Land</option>
+                                <option value="commercial">Commercial</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="filter-group">
+                            <label><i class="bi bi-people me-1"></i>Purpose</label>
+                            <select name="rental_purpose">
+                                <option value="">Any</option>
+                                <option value="family">Family</option>
+                                <option value="student">Student</option>
+                                <option value="office">Office</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="filter-group">
+                            <label><i class="bi bi-cash me-1"></i>Min Price</label>
+                            <input type="number" name="min_price" placeholder="NPR">
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="filter-group">
+                            <label><i class="bi bi-cash-stack me-1"></i>Max Price</label>
+                            <input type="number" name="max_price" placeholder="NPR">
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="filter-group">
+                            <label><i class="bi bi-door-open me-1"></i>Min Rooms</label>
+                            <input type="number" name="num_rooms" min="1" placeholder="Min">
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="filter-group">
+                            <label><i class="bi bi-star me-1"></i>Min Rating</label>
+                            <select name="min_rating">
+                                <option value="">Any</option>
+                                <option value="3">3+ Stars</option>
+                                <option value="4">4+ Stars</option>
+                                <option value="4.5">4.5+ Stars</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="filter-actions">
+                    <button type="submit" class="filter-btn filter-btn-primary">
+                        <i class="bi bi-search me-1"></i>Search
+                    </button>
+                    <button type="reset" class="filter-btn filter-btn-secondary" id="resetFilters">
+                        <i class="bi bi-x-circle me-1"></i>Clear
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Property List -->
+        <div class="property-list-section">
+            <div class="property-list-header">
+                <span id="resultCount">Loading properties...</span>
+                <button class="btn btn-sm btn-link" id="sortToggle">
+                    <i class="bi bi-sort-down"></i>
+                </button>
+            </div>
+            <div id="propertyList">
+                <!-- Properties loaded dynamically -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Map Container -->
+    <div class="map-container-wrapper">
+        <!-- Loading State -->
+        <div class="map-loading" id="mapLoading">
+            <div class="map-loading-spinner"></div>
+            <div class="map-loading-text">Loading map...</div>
+        </div>
+        
+        <!-- Map Controls -->
+        <div class="map-controls">
+            <button class="map-control-btn d-lg-none" id="toggleSidebar">
+                <i class="bi bi-funnel"></i>
+                <span>Filters</span>
+            </button>
+            <button class="map-control-btn" id="myLocationBtn">
+                <i class="bi bi-crosshairs"></i>
+                <span>My Location</span>
+            </button>
+            <button class="map-control-btn" id="resetMapBtn">
+                <i class="bi bi-arrows-fullscreen"></i>
+                <span>Reset View</span>
+            </button>
+        </div>
+        
+        <!-- Location Search -->
+        <div class="location-search-box">
+            <i class="bi bi-search location-search-icon"></i>
+            <input type="text" class="location-search-input" id="locationSearch" 
+                   placeholder="Search for a location in Nepal...">
+        </div>
+        
+        <!-- Google Map -->
+        <div id="googleMap"></div>
+        
+        <!-- Map Legend -->
+        <div class="map-legend">
+            <div class="legend-title">Map Legend</div>
+            <div class="legend-item">
+                <span class="legend-marker available"></span>
+                Available Property
+            </div>
+            <div class="legend-item">
+                <span class="legend-marker featured"></span>
+                Featured Property
+            </div>
+            <div class="legend-item">
+                <span class="legend-marker verified"></span>
+                Verified Property
+            </div>
+        </div>
+        
+        <!-- Info Panel -->
+        <div class="info-panel" id="infoPanel">
+            <div class="info-panel-header">
+                <img src="" class="info-panel-image" id="panelImage" alt="Property">
+                <button class="info-panel-close" id="closePanel">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+                <div class="info-panel-badges" id="panelBadges">
+                    <!-- Badges loaded dynamically -->
+                </div>
+            </div>
+            
+            <div class="info-panel-body" id="panelBody">
+                <!-- Content loaded dynamically -->
+            </div>
+            
+            <div class="info-panel-footer">
+                <a href="#" class="view-details-btn" id="viewDetailsBtn">
+                    <i class="bi bi-eye"></i>
+                    View Full Property Details
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Google Maps API with Places Library -->
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_key }}&libraries=places,geometry&callback=initMap" async defer></script>
+<!-- MarkerClusterer for grouping markers -->
+<script src="https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js"></script>
+
+<script>
+const API_URL = '/api/v1/properties/map/';
+const CSRF_TOKEN = '{{ csrf_token }}';
+
+let map;
+let markers = [];
+let markerCluster = null;
+let infoWindows = [];
+let activeMarker = null;
+let userLocation = null;
+let userLocationMarker = null;
+let directionsService;
+let directionsRenderer;
+let placesService;
+let searchBox;
+let allProperties = [];
+
+// Default Nepal center (Kathmandu)
+const NEPAL_CENTER = { lat: 27.7172, lng: 85.3240 };
+const NEPAL_BOUNDS = {
+    north: 30.45,
+    south: 26.35,
+    west: 80.05,
+    east: 88.20
+};
+
+// Custom marker icon
+function createMarkerIcon(type = 'default', isActive = false) {
+    const colors = {
+        default: '#DC143C',
+        featured: '#FFD700',
+        verified: '#16a34a'
+    };
+    
+    const color = colors[type] || colors.default;
+    const scale = isActive ? 1.3 : 1;
+    
+    return {
+        path: 'M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24c0-6.6-5.4-12-12-12zm0 18c-3.3 0-6-2.7-6-6s2.7-6 6-6 6 2.7 6 6-2.7 6-6 6z',
+        fillColor: color,
+        fillOpacity: 1,
+        strokeColor: '#fff',
+        strokeWeight: 2,
+        scale: scale,
+        anchor: new google.maps.Point(12, 36),
+        labelOrigin: new google.maps.Point(12, 12)
+    };
+}
+
+function initMap() {
+    // Hide loading
+    document.getElementById('mapLoading').style.display = 'none';
+    
+    // Initialize map
+    map = new google.maps.Map(document.getElementById('googleMap'), {
+        center: NEPAL_CENTER,
+        zoom: 12,
+        styles: mapStyles,
+        mapTypeControl: true,
+        mapTypeControlOptions: {
+            style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
+            position: google.maps.ControlPosition.TOP_RIGHT
+        },
+        fullscreenControl: true,
+        streetViewControl: true,
+        zoomControl: true,
+        zoomControlOptions: {
+            position: google.maps.ControlPosition.RIGHT_CENTER
+        }
+    });
+    
+    // Initialize directions service
+    directionsService = new google.maps.DirectionsService();
+    directionsRenderer = new google.maps.DirectionsRenderer({
+        map: map,
+        suppressMarkers: true,
+        polylineOptions: {
+            strokeColor: '#003893',
+            strokeWeight: 5,
+            strokeOpacity: 0.8
+        }
+    });
+    
+    // Initialize places service
+    placesService = new google.maps.places.PlacesService(map);
+    
+    // Initialize search box
+    const input = document.getElementById('locationSearch');
+    searchBox = new google.maps.places.SearchBox(input, {
+        bounds: new google.maps.LatLngBounds(
+            { lat: NEPAL_BOUNDS.south, lng: NEPAL_BOUNDS.west },
+            { lat: NEPAL_BOUNDS.north, lng: NEPAL_BOUNDS.east }
+        )
+    });
+    
+    searchBox.addListener('places_changed', function() {
+        const places = searchBox.getPlaces();
+        if (places.length === 0) return;
+        
+        const place = places[0];
+        if (!place.geometry) return;
+        
+        map.setCenter(place.geometry.location);
+        map.setZoom(14);
+        
+        // Search properties near this location
+        loadPropertiesNearLocation(place.geometry.location);
+    });
+    
+    // Load initial properties
+    loadProperties();
+    
+    // Setup event listeners
+    setupEventListeners();
+}
+
+function setupEventListeners() {
+    // Filter form
+    document.getElementById('mapFilterForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        loadProperties(getFilterParams());
+    });
+    
+    // Reset filters
+    document.getElementById('resetFilters').addEventListener('click', function() {
+        document.getElementById('mapFilterForm').reset();
+        loadProperties();
+    });
+    
+    // My location button
+    document.getElementById('myLocationBtn').addEventListener('click', function() {
+        getUserLocation();
+    });
+    
+    // Reset map view
+    document.getElementById('resetMapBtn').addEventListener('click', function() {
+        map.setCenter(NEPAL_CENTER);
+        map.setZoom(12);
+        directionsRenderer.setDirections({ routes: [] });
+    });
+    
+    // Close info panel
+    document.getElementById('closePanel').addEventListener('click', function() {
+        closeInfoPanel();
+    });
+    
+    // Toggle sidebar on mobile
+    document.getElementById('toggleSidebar')?.addEventListener('click', function() {
+        document.getElementById('mapSidebar').classList.toggle('collapsed');
+    });
+}
+
+function getFilterParams() {
+    const form = document.getElementById('mapFilterForm');
+    const formData = new FormData(form);
+    const params = {};
+    
+    formData.forEach((value, key) => {
+        if (value) params[key] = value;
+    });
+    
+    return params;
+}
+
+function loadProperties(filters = {}) {
+    const url = new URL(API_URL, window.location.origin);
+    Object.keys(filters).forEach(key => {
+        if (filters[key]) url.searchParams.append(key, filters[key]);
+    });
+    
+    document.getElementById('resultCount').textContent = 'Loading...';
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            // Handle new API response format { count, properties }
+            const properties = data.properties || (Array.isArray(data) ? data : (data.results || []));
+            const count = data.count || properties.length;
+            allProperties = properties;
+            clearMarkers();
+            addMarkers(properties);
+            updatePropertyList(properties);
+            document.getElementById('resultCount').textContent = `${count} propert${count === 1 ? 'y' : 'ies'} found`;
+        })
+        .catch(error => {
+            console.error('Error loading properties:', error);
+            document.getElementById('resultCount').textContent = 'Error loading properties';
+        });
+}
+
+function loadPropertiesNearLocation(location) {
+    // Bias search towards the selected location
+    const filters = getFilterParams();
+    loadProperties(filters);
+}
+
+function clearMarkers() {
+    // Clear marker cluster
+    if (markerCluster) {
+        markerCluster.clearMarkers();
+        markerCluster = null;
+    }
+    markers.forEach(marker => marker.setMap(null));
+    markers = [];
+    infoWindows.forEach(iw => iw.close());
+    infoWindows = [];
+}
+
+function addMarkers(properties) {
+    const bounds = new google.maps.LatLngBounds();
+    let validCount = 0;
+    const markersForCluster = [];
+    
+    properties.forEach(property => {
+        if (!property.latitude || !property.longitude) return;
+        
+        const lat = parseFloat(property.latitude);
+        const lng = parseFloat(property.longitude);
+        if (isNaN(lat) || isNaN(lng)) return;
+        
+        const position = { lat, lng };
+        
+        // Determine marker type
+        let markerType = 'default';
+        if (property.is_featured) markerType = 'featured';
+        else if (property.is_verified) markerType = 'verified';
+        
+        const marker = new google.maps.Marker({
+            position: position,
+            map: map,
+            icon: createMarkerIcon(markerType),
+            title: property.title,
+            animation: google.maps.Animation.DROP,
+            optimized: true
+        });
+        
+        marker.propertyData = property;
+        marker.markerType = markerType;
+        
+        // Click event
+        marker.addListener('click', function() {
+            showInfoPanel(property);
+            setActiveMarker(marker);
+        });
+        
+        // Hover info window - create lazily for better performance
+        marker.addListener('mouseover', function() {
+            // Close any open info windows
+            infoWindows.forEach(iw => iw.close());
+            
+            const infoContent = `
+                <div class="map-info-window" style="padding: 12px; max-width: 280px; font-family: 'Inter', sans-serif;">
+                    ${property.primary_image ? `<img src="${property.primary_image}" style="width: 100%; height: 100px; object-fit: cover; border-radius: 8px; margin-bottom: 10px;">` : ''}
+                    <strong style="font-size: 14px; color: #1a1a1a; display: block; margin-bottom: 5px;">${escapeHtml(property.title)}</strong>
+                    <span style="color: #666; font-size: 12px; display: flex; align-items: center; margin-bottom: 5px;">
+                        <i class="bi bi-geo-alt" style="margin-right: 4px;"></i> ${escapeHtml(property.municipality || '')} ${escapeHtml(property.district)}
+                    </span>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                        <span style="color: #DC143C; font-weight: 700; font-size: 15px;">
+                            Rs. ${Number(property.price).toLocaleString()}<small style="font-weight: 400; font-size: 11px;">/mo</small>
+                        </span>
+                        ${property.average_rating > 0 ? `
+                        <span style="display: flex; align-items: center; gap: 3px; font-size: 12px;">
+                            <i class="bi bi-star-fill" style="color: #ffc107;"></i>
+                            ${parseFloat(property.average_rating).toFixed(1)}
+                        </span>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            
+            const infoWindow = new google.maps.InfoWindow({
+                content: infoContent,
+                maxWidth: 300
+            });
+            
+            infoWindow.open(map, marker);
+            infoWindows.push(infoWindow);
+        });
+        
+        marker.addListener('mouseout', function() {
+            // Delay closing to allow interaction
+            setTimeout(() => {
+                infoWindows.forEach(iw => iw.close());
+            }, 100);
+        });
+        
+        markers.push(marker);
+        markersForCluster.push(marker);
+        bounds.extend(position);
+        validCount++;
+    });
+    
+    // Create marker cluster for better performance
+    if (typeof markerClusterer !== 'undefined' && validCount > 10) {
+        markerCluster = new markerClusterer.MarkerClusterer({
+            map: map,
+            markers: markersForCluster,
+            renderer: {
+                render: ({ count, position }) => {
+                    return new google.maps.Marker({
+                        position: position,
+                        icon: {
+                            path: google.maps.SymbolPath.CIRCLE,
+                            scale: 20 + Math.min(count, 20),
+                            fillColor: '#DC143C',
+                            fillOpacity: 0.9,
+                            strokeColor: '#fff',
+                            strokeWeight: 3
+                        },
+                        label: {
+                            text: String(count),
+                            color: '#fff',
+                            fontWeight: 'bold',
+                            fontSize: '12px'
+                        },
+                        zIndex: Number(google.maps.Marker.MAX_ZINDEX) + count
+                    });
+                }
+            }
+        });
+    }
+    
+    if (validCount > 0) {
+        map.fitBounds(bounds, { padding: 50 });
+        if (map.getZoom() > 15) map.setZoom(15);
+    }
+}
+
+function setActiveMarker(marker) {
+    // Reset previous active marker
+    if (activeMarker && activeMarker !== marker) {
+        activeMarker.setIcon(createMarkerIcon(activeMarker.markerType, false));
+    }
+    
+    // Set new active marker
+    activeMarker = marker;
+    marker.setIcon(createMarkerIcon(marker.markerType, true));
+    marker.setAnimation(google.maps.Animation.BOUNCE);
+    setTimeout(() => marker.setAnimation(null), 1000);
+}
+
+function showInfoPanel(property) {
+    const panel = document.getElementById('infoPanel');
+    const image = document.getElementById('panelImage');
+    const badges = document.getElementById('panelBadges');
+    const body = document.getElementById('panelBody');
+    const viewBtn = document.getElementById('viewDetailsBtn');
+    
+    // Set image
+    image.src = property.primary_image || 'https://via.placeholder.com/420x220?text=No+Image';
+    image.alt = property.title;
+    
+    // Set badges
+    let badgesHtml = `<span class="badge badge-type">${escapeHtml(property.property_type_display || property.property_type)}</span>`;
+    if (property.is_featured) badgesHtml += '<span class="badge badge-featured"><i class="bi bi-star-fill me-1"></i>Featured</span>';
+    if (property.is_verified) badgesHtml += '<span class="badge badge-verified"><i class="bi bi-patch-check-fill me-1"></i>Verified</span>';
+    badges.innerHTML = badgesHtml;
+    
+    // Build body content
+    let bodyHtml = `
+        <h4 class="info-panel-title">${escapeHtml(property.title)}</h4>
+        <div class="info-panel-location">
+            <i class="bi bi-geo-alt-fill"></i>
+            ${escapeHtml(property.address || '')}${property.address && property.municipality ? ', ' : ''}${escapeHtml(property.municipality || '')}${(property.address || property.municipality) && property.district ? ', ' : ''}${escapeHtml(property.district || '')}
+        </div>
+        <div class="info-panel-price">
+            Rs. ${Number(property.price).toLocaleString()}<small>/month</small>
+        </div>
+        
+        ${property.short_description || property.description ? `
+        <div class="info-panel-description" style="margin: 15px 0; padding: 12px; background: var(--color-gray-100); border-radius: 10px; font-size: 0.9rem; color: var(--color-gray-600); line-height: 1.6;">
+            ${escapeHtml(property.short_description || (property.description ? property.description.substring(0, 150) + '...' : ''))}
+        </div>
+        ` : ''}
+        
+        <div class="info-panel-features">
+            <div class="info-feature">
+                <i class="bi bi-door-open"></i>
+                <div>
+                    <div class="info-feature-text">${property.num_rooms || 1} Room(s)</div>
+                    <div class="info-feature-label">Bedrooms</div>
+                </div>
+            </div>
+            <div class="info-feature">
+                <i class="bi bi-people"></i>
+                <div>
+                    <div class="info-feature-text">${escapeHtml(property.rental_purpose_display || property.rental_purpose || 'Any')}</div>
+                    <div class="info-feature-label">Purpose</div>
+                </div>
+            </div>
+            <div class="info-feature">
+                <i class="bi bi-star-fill"></i>
+                <div>
+                    <div class="info-feature-text">${parseFloat(property.average_rating || 0).toFixed(1)}/5</div>
+                    <div class="info-feature-label">${property.review_count || 0} Reviews</div>
+                </div>
+            </div>
+            <div class="info-feature">
+                <i class="bi bi-house"></i>
+                <div>
+                    <div class="info-feature-text">${escapeHtml(property.property_type_display || property.property_type)}</div>
+                    <div class="info-feature-label">Type</div>
+                </div>
+            </div>
+        </div>
+        
+        ${property.amenities && property.amenities.length > 0 ? `
+        <div style="margin-top: 15px;">
+            <div style="font-weight: 600; margin-bottom: 10px; font-size: 0.9rem;">
+                <i class="bi bi-check-circle text-success me-1"></i>Amenities
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                ${property.amenities.slice(0, 6).map(a => `
+                    <span style="padding: 5px 12px; background: var(--color-gray-100); border-radius: 20px; font-size: 0.8rem;">
+                        <i class="bi bi-${a.icon || 'check'} me-1"></i>${escapeHtml(a.name)}
+                    </span>
+                `).join('')}
+                ${property.amenities.length > 6 ? `<span style="padding: 5px 12px; background: var(--color-gray-100); border-radius: 20px; font-size: 0.8rem;">+${property.amenities.length - 6} more</span>` : ''}
+            </div>
+        </div>
+        ` : ''}
+    `;
+    
+    // Directions Section
+    bodyHtml += `
+        <div class="directions-panel">
+            <div class="directions-title">
+                <i class="bi bi-signpost-2"></i>
+                Get Directions
+            </div>
+            <div class="directions-modes">
+                <button class="direction-mode-btn active" data-mode="DRIVING" onclick="selectTravelMode(this, 'DRIVING')">
+                    <i class="bi bi-car-front"></i>
+                    <span>Drive</span>
+                </button>
+                <button class="direction-mode-btn" data-mode="WALKING" onclick="selectTravelMode(this, 'WALKING')">
+                    <i class="bi bi-person-walking"></i>
+                    <span>Walk</span>
+                </button>
+                <button class="direction-mode-btn" data-mode="TRANSIT" onclick="selectTravelMode(this, 'TRANSIT')">
+                    <i class="bi bi-bus-front"></i>
+                    <span>Transit</span>
+                </button>
+            </div>
+            <div class="directions-info" id="directionsInfo">
+                <div class="directions-info-item">
+                    <div class="directions-info-value" id="directionDistance">--</div>
+                    <div class="directions-info-label">Distance</div>
+                </div>
+                <div class="directions-info-item">
+                    <div class="directions-info-value" id="directionDuration">--</div>
+                    <div class="directions-info-label">Est. Time</div>
+                </div>
+            </div>
+            <button class="get-directions-btn" onclick="showDirections(${property.latitude}, ${property.longitude})">
+                <i class="bi bi-compass"></i>
+                Show Route from My Location
+            </button>
+        </div>
+    `;
+    
+    // Nearby facilities
+    bodyHtml += `
+        <div class="nearby-section">
+            <div class="nearby-title">
+                <i class="bi bi-buildings"></i>
+                Nearby Facilities
+            </div>
+            <div class="nearby-grid" id="nearbyFacilities">
+                <div class="text-center text-muted py-3" style="grid-column: span 2;">
+                    <i class="bi bi-hourglass-split"></i> Loading nearby places...
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Owner section
+    bodyHtml += `
+        <div class="owner-section">
+            <div class="owner-header">
+                <img src="${property.owner_avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(property.owner_name || 'Owner')}" 
+                     class="owner-avatar" alt="Owner">
+                <div class="owner-info">
+                    <h6>${escapeHtml(property.owner_name || 'Property Owner')}</h6>
+                    <p>Property Owner</p>
+                </div>
+            </div>
+            <div class="owner-actions">
+                <a href="/messaging/conversation/${property.owner_id || ''}/" class="owner-btn owner-btn-message">
+                    <i class="bi bi-chat-dots"></i>
+                    Message
+                </a>
+                ${property.contact_phone ? `
+                <a href="tel:${property.contact_phone}" class="owner-btn owner-btn-call">
+                    <i class="bi bi-telephone"></i>
+                    Call
+                </a>
+                ` : ''}
+            </div>
+        </div>
+    `;
+    
+    body.innerHTML = bodyHtml;
+    viewBtn.href = `/properties/${property.id}/`;
+    
+    // Open panel
+    panel.classList.add('open');
+    
+    // Highlight in list
+    highlightPropertyInList(property.id);
+    
+    // Load nearby facilities
+    if (property.latitude && property.longitude) {
+        loadNearbyFacilities(property.latitude, property.longitude);
+    }
+}
+
+function closeInfoPanel() {
+    document.getElementById('infoPanel').classList.remove('open');
+    directionsRenderer.setDirections({ routes: [] });
+    
+    if (activeMarker) {
+        activeMarker.setIcon(createMarkerIcon(activeMarker.markerType, false));
+        activeMarker = null;
+    }
+}
+
+function updatePropertyList(properties) {
+    const list = document.getElementById('propertyList');
+    const count = document.getElementById('resultCount');
+    
+    if (properties.length === 0) {
+        list.innerHTML = `
+            <div class="text-center py-5">
+                <i class="bi bi-search text-muted" style="font-size: 3rem;"></i>
+                <p class="text-muted mt-3">No properties found matching your criteria</p>
+            </div>
+        `;
+        return;
+    }
+    
+    list.innerHTML = properties.map(p => `
+        <div class="property-list-item" data-property-id="${p.id}" onclick="focusProperty(${p.id})">
+            <img src="${p.primary_image || 'https://via.placeholder.com/90x70?text=No+Image'}" 
+                 class="property-list-image" alt="${escapeHtml(p.title)}">
+            <div class="property-list-info">
+                <div class="property-list-title">${escapeHtml(p.title)}</div>
+                <div class="property-list-location">
+                    <i class="bi bi-geo-alt me-1"></i>${escapeHtml(p.municipality || '')} ${escapeHtml(p.district)}
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                    <div class="property-list-price">Rs. ${Number(p.price).toLocaleString()}/mo</div>
+                    ${p.average_rating > 0 ? `
+                    <div class="property-list-rating">
+                        <i class="bi bi-star-fill text-warning"></i>
+                        <span>${parseFloat(p.average_rating).toFixed(1)}</span>
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function highlightPropertyInList(propertyId) {
+    document.querySelectorAll('.property-list-item').forEach(item => {
+        item.classList.toggle('active', item.dataset.propertyId == propertyId);
+    });
+}
+
+function focusProperty(propertyId) {
+    const marker = markers.find(m => m.propertyData && m.propertyData.id === propertyId);
+    if (marker) {
+        map.setCenter(marker.getPosition());
+        map.setZoom(16);
+        showInfoPanel(marker.propertyData);
+        setActiveMarker(marker);
+    }
+}
+
+// Directions functionality
+let currentTravelMode = 'DRIVING';
+
+function selectTravelMode(btn, mode) {
+    document.querySelectorAll('.direction-mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTravelMode = mode;
+    
+    // If we already have directions showing, recalculate
+    if (activeMarker && userLocation) {
+        const prop = activeMarker.propertyData;
+        calculateRoute(userLocation, { lat: parseFloat(prop.latitude), lng: parseFloat(prop.longitude) }, mode);
+    }
+}
+
+function showDirections(destLat, destLng) {
+    if (!userLocation) {
+        getUserLocation(() => {
+            calculateRoute(userLocation, { lat: destLat, lng: destLng }, currentTravelMode);
+        });
+    } else {
+        calculateRoute(userLocation, { lat: destLat, lng: destLng }, currentTravelMode);
+    }
+}
+
+function calculateRoute(origin, destination, mode) {
+    directionsService.route({
+        origin: origin,
+        destination: destination,
+        travelMode: google.maps.TravelMode[mode]
+    }, function(response, status) {
+        if (status === 'OK') {
+            directionsRenderer.setDirections(response);
+            
+            const route = response.routes[0].legs[0];
+            document.getElementById('directionDistance').textContent = route.distance.text;
+            document.getElementById('directionDuration').textContent = route.duration.text;
+            
+            showToast(`Route calculated: ${route.distance.text}, ${route.duration.text}`);
+        } else {
+            let errorMsg = 'Could not calculate directions.';
+            if (status === 'ZERO_RESULTS') {
+                errorMsg = 'No route found between these locations.';
+            } else if (status === 'NOT_FOUND') {
+                errorMsg = 'Origin or destination not found.';
+            }
+            showToast(errorMsg, 'error');
+            document.getElementById('directionDistance').textContent = '--';
+            document.getElementById('directionDuration').textContent = '--';
+        }
+    });
+}
+
+function getUserLocation(callback) {
+    if (navigator.geolocation) {
+        // Show loading state
+        document.getElementById('myLocationBtn').innerHTML = '<i class="bi bi-hourglass-split"></i><span>Locating...</span>';
+        
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                userLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+                
+                // Remove previous user marker if exists
+                if (userLocationMarker) {
+                    userLocationMarker.setMap(null);
+                }
+                
+                // Add user marker with pulsing effect
+                userLocationMarker = new google.maps.Marker({
+                    position: userLocation,
+                    map: map,
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 12,
+                        fillColor: '#4285F4',
+                        fillOpacity: 1,
+                        strokeColor: '#fff',
+                        strokeWeight: 3
+                    },
+                    title: 'Your Location',
+                    zIndex: 9999
+                });
+                
+                // Add a circle around user location
+                new google.maps.Circle({
+                    strokeColor: '#4285F4',
+                    strokeOpacity: 0.3,
+                    strokeWeight: 2,
+                    fillColor: '#4285F4',
+                    fillOpacity: 0.1,
+                    map: map,
+                    center: userLocation,
+                    radius: 300 // 300 meters radius
+                });
+                
+                map.setCenter(userLocation);
+                map.setZoom(15);
+                
+                // Reset button state
+                document.getElementById('myLocationBtn').innerHTML = '<i class="bi bi-crosshairs"></i><span>My Location</span>';
+                
+                // Show nearest properties message
+                showToast('Showing properties near your location');
+                
+                if (callback) callback();
+            },
+            function(error) {
+                let message = 'Unable to get your location.';
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        message = 'Location access denied. Please enable location permissions.';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        message = 'Location information unavailable.';
+                        break;
+                    case error.TIMEOUT:
+                        message = 'Location request timed out.';
+                        break;
+                }
+                showToast(message, 'error');
+                document.getElementById('myLocationBtn').innerHTML = '<i class="bi bi-crosshairs"></i><span>My Location</span>';
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 60000
+            }
+        );
+    } else {
+        showToast('Geolocation is not supported by your browser', 'error');
+    }
+}
+
+// Toast notification helper
+function showToast(message, type = 'success') {
+    // Create toast container if doesn't exist
+    let container = document.getElementById('toastContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toastContainer';
+        container.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999;';
+        document.body.appendChild(container);
+    }
+    
+    const toast = document.createElement('div');
+    toast.className = `toast-notification ${type}`;
+    toast.style.cssText = `
+        background: ${type === 'error' ? '#DC3545' : '#28A745'};
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        animation: slideIn 0.3s ease;
+    `;
+    toast.innerHTML = `
+        <i class="bi bi-${type === 'error' ? 'exclamation-circle' : 'check-circle'}"></i>
+        ${escapeHtml(message)}
+    `;
+    
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// Nearby facilities
+function loadNearbyFacilities(lat, lng) {
+    const location = new google.maps.LatLng(lat, lng);
+    const facilityTypes = [
+        { type: 'school', icon: 'bi-mortarboard', label: 'Schools' },
+        { type: 'hospital', icon: 'bi-hospital', label: 'Hospitals' },
+        { type: 'shopping_mall', icon: 'bi-shop', label: 'Shopping' },
+        { type: 'restaurant', icon: 'bi-cup-hot', label: 'Restaurants' },
+        { type: 'bank', icon: 'bi-bank', label: 'Banks' },
+        { type: 'bus_station', icon: 'bi-bus-front', label: 'Bus Stops' }
+    ];
+    
+    const container = document.getElementById('nearbyFacilities');
+    let results = [];
+    let completed = 0;
+    
+    facilityTypes.forEach(facility => {
+        placesService.nearbySearch({
+            location: location,
+            radius: 1500,
+            type: facility.type
+        }, function(places, status) {
+            completed++;
+            
+            if (status === google.maps.places.PlacesServiceStatus.OK && places.length > 0) {
+                const nearest = places[0];
+                const distance = google.maps.geometry.spherical.computeDistanceBetween(
+                    location,
+                    nearest.geometry.location
+                );
+                
+                results.push({
+                    icon: facility.icon,
+                    label: facility.label,
+                    name: nearest.name,
+                    distance: Math.round(distance)
+                });
+            }
+            
+            if (completed === facilityTypes.length) {
+                displayNearbyFacilities(results);
+            }
+        });
+    });
+}
+
+function displayNearbyFacilities(facilities) {
+    const container = document.getElementById('nearbyFacilities');
+    
+    if (facilities.length === 0) {
+        container.innerHTML = '<div class="text-center text-muted py-3" style="grid-column: span 2;">No nearby facilities found</div>';
+        return;
+    }
+    
+    container.innerHTML = facilities.sort((a, b) => a.distance - b.distance).slice(0, 6).map(f => `
+        <div class="nearby-item">
+            <i class="bi ${f.icon}"></i>
+            <span>${escapeHtml(f.label)}</span>
+            <small>${f.distance}m</small>
+        </div>
+    `).join('');
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Custom map styles
+const mapStyles = [
+    {
+        featureType: 'poi',
+        elementType: 'labels',
+        stylers: [{ visibility: 'off' }]
+    },
+    {
+        featureType: 'transit',
+        elementType: 'labels',
+        stylers: [{ visibility: 'simplified' }]
+    }
+];
+</script>
+{% endblock %}

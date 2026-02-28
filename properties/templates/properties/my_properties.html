@@ -1,0 +1,241 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}My Properties{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Page Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
+        <div>
+            <h1 class="h2 fw-bold mb-1">
+                <i class="bi bi-house-door me-2"></i>My Properties
+            </h1>
+            <p class="text-muted mb-0">Manage your property listings</p>
+        </div>
+        <a href="{% url 'properties:create' %}" class="btn btn-primary mt-3 mt-md-0">
+            <i class="bi bi-plus-circle me-2"></i>Add New Property
+        </a>
+    </div>
+
+    {% if properties %}
+    <!-- Properties Table (Desktop) -->
+    <div class="card shadow-sm border-0 d-none d-md-block">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col" style="width: 50px;"></th>
+                        <th scope="col">Property</th>
+                        <th scope="col">Type</th>
+                        <th scope="col">Price</th>
+                        <th scope="col">Status</th>
+                        <th scope="col" class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for property in properties %}
+                    <tr>
+                        <!-- Thumbnail -->
+                        <td>
+                            {% if property.primary_image %}
+                            <img src="{{ property.primary_image.image.url }}"
+                                 class="rounded"
+                                 width="45" height="45"
+                                 style="object-fit: cover;"
+                                 alt="{{ property.title }}">
+                            {% else %}
+                            <div class="bg-light rounded d-flex align-items-center justify-content-center"
+                                 style="width: 45px; height: 45px;">
+                                <i class="bi bi-image text-muted"></i>
+                            </div>
+                            {% endif %}
+                        </td>
+
+                        <!-- Title & Address -->
+                        <td>
+                            <a href="{% url 'properties:detail' pk=property.pk %}"
+                               class="text-decoration-none fw-semibold text-dark">
+                                {{ property.title }}
+                            </a>
+                            <br>
+                            <small class="text-muted">
+                                <i class="bi bi-geo-alt me-1"></i>{{ property.district }}, Ward {{ property.ward_number }}
+                            </small>
+                        </td>
+
+                        <!-- Type -->
+                        <td>
+                            <span class="badge bg-primary bg-opacity-10 text-primary">
+                                {{ property.get_property_type_display }}
+                            </span>
+                        </td>
+
+                        <!-- Price -->
+                        <td>
+                            <span class="fw-semibold">Rs. {{ property.price|intcomma }}</span>
+                            <small class="text-muted">/mo</small>
+                        </td>
+
+                        <!-- Status -->
+                        <td>
+                            {% if property.status == 'available' %}
+                            <span class="badge bg-success">
+                                <i class="bi bi-check-circle me-1"></i>{{ property.get_status_display }}
+                            </span>
+                            {% elif property.status == 'rented' %}
+                            <span class="badge bg-warning text-dark">
+                                <i class="bi bi-house-check me-1"></i>{{ property.get_status_display }}
+                            </span>
+                            {% else %}
+                            <span class="badge bg-danger">
+                                <i class="bi bi-x-circle me-1"></i>{{ property.get_status_display }}
+                            </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Actions -->
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'properties:detail' pk=property.pk %}"
+                                   class="btn btn-outline-secondary" title="View">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{% url 'properties:edit' pk=property.pk %}"
+                                   class="btn btn-outline-primary" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'properties:delete' pk=property.pk %}"
+                                   class="btn btn-outline-danger" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Properties Cards (Mobile) -->
+    <div class="d-md-none">
+        {% for property in properties %}
+        <div class="card shadow-sm border-0 mb-3">
+            <div class="card-body">
+                <div class="d-flex">
+                    <!-- Thumbnail -->
+                    {% if property.primary_image %}
+                    <img src="{{ property.primary_image.image.url }}"
+                         class="rounded me-3 flex-shrink-0"
+                         width="70" height="70"
+                         style="object-fit: cover;"
+                         alt="{{ property.title }}">
+                    {% else %}
+                    <div class="bg-light rounded d-flex align-items-center justify-content-center me-3 flex-shrink-0"
+                         style="width: 70px; height: 70px;">
+                        <i class="bi bi-image text-muted" style="font-size: 1.5rem;"></i>
+                    </div>
+                    {% endif %}
+
+                    <!-- Details -->
+                    <div class="flex-grow-1 min-width-0">
+                        <a href="{% url 'properties:detail' pk=property.pk %}"
+                           class="text-decoration-none">
+                            <h6 class="fw-bold text-dark mb-1 text-truncate">{{ property.title }}</h6>
+                        </a>
+                        <p class="text-muted small mb-1">
+                            <i class="bi bi-geo-alt me-1"></i>{{ property.district }}, Ward {{ property.ward_number }}
+                        </p>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="fw-semibold text-success small">Rs. {{ property.price|intcomma }}/mo</span>
+                            <span class="badge bg-primary bg-opacity-10 text-primary small">{{ property.get_property_type_display }}</span>
+                            {% if property.status == 'available' %}
+                            <span class="badge bg-success small">{{ property.get_status_display }}</span>
+                            {% elif property.status == 'rented' %}
+                            <span class="badge bg-warning text-dark small">{{ property.get_status_display }}</span>
+                            {% else %}
+                            <span class="badge bg-danger small">{{ property.get_status_display }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mobile Actions -->
+                <div class="d-flex gap-2 mt-3 pt-3 border-top">
+                    <a href="{% url 'properties:detail' pk=property.pk %}"
+                       class="btn btn-sm btn-outline-secondary flex-fill">
+                        <i class="bi bi-eye me-1"></i>View
+                    </a>
+                    <a href="{% url 'properties:edit' pk=property.pk %}"
+                       class="btn btn-sm btn-outline-primary flex-fill">
+                        <i class="bi bi-pencil me-1"></i>Edit
+                    </a>
+                    <a href="{% url 'properties:delete' pk=property.pk %}"
+                       class="btn btn-sm btn-outline-danger flex-fill">
+                        <i class="bi bi-trash me-1"></i>Delete
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if properties.has_other_pages %}
+    <nav aria-label="My properties pages" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if properties.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ properties.previous_page_number }}">
+                    <i class="bi bi-chevron-left"></i> Previous
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link"><i class="bi bi-chevron-left"></i> Previous</span>
+            </li>
+            {% endif %}
+
+            {% for num in properties.paginator.page_range %}
+                {% if properties.number == num %}
+                <li class="page-item active" aria-current="page">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+                {% elif num > properties.number|add:'-3' and num < properties.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if properties.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ properties.next_page_number }}">
+                    Next <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">Next <i class="bi bi-chevron-right"></i></span>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <!-- Empty State -->
+    <div class="text-center py-5">
+        <div class="mb-4">
+            <i class="bi bi-house-add" style="font-size: 4rem; color: #dee2e6;"></i>
+        </div>
+        <h3 class="text-muted">No Properties Yet</h3>
+        <p class="text-muted mb-4">You haven't listed any properties. Start by creating your first listing.</p>
+        <a href="{% url 'properties:create' %}" class="btn btn-primary btn-lg">
+            <i class="bi bi-plus-circle me-2"></i>Add Your First Property
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

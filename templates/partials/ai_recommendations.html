@@ -1,0 +1,387 @@
+{% load static %}
+<!-- AI Recommendations Widget -->
+<div class="ai-recommendations-section py-5" id="aiRecommendations">
+    <div class="container">
+        <div class="section-header text-center mb-5">
+            <span class="section-badge"><i class="bi bi-stars me-2"></i>AI Powered</span>
+            <h2 class="section-title">Personalized Recommendations</h2>
+            <p class="section-subtitle">Properties selected just for you based on your preferences</p>
+        </div>
+        
+        <!-- Loading State -->
+        <div id="recommendationsLoading" class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="text-muted mt-2">Finding perfect properties for you...</p>
+        </div>
+        
+        <!-- Recommendations Grid -->
+        <div class="row g-4" id="recommendationsGrid" style="display: none;">
+            <!-- Recommendations will be inserted here via JavaScript -->
+        </div>
+        
+        <!-- Empty State -->
+        <div id="recommendationsEmpty" class="text-center py-4" style="display: none;">
+            <i class="bi bi-house-heart text-muted" style="font-size: 3rem;"></i>
+            <p class="text-muted mt-2">Start browsing properties to get personalized recommendations!</p>
+            <a href="{% url 'properties:list' %}" class="btn btn-primary">
+                <i class="bi bi-search me-2"></i>Browse Properties
+            </a>
+        </div>
+        
+        <!-- Refresh Button -->
+        <div class="text-center mt-4" id="refreshRecommendations" style="display: none;">
+            <button class="btn btn-outline-primary" onclick="loadRecommendations()">
+                <i class="bi bi-arrow-clockwise me-2"></i>Refresh Recommendations
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+.ai-recommendations-section {
+    background: linear-gradient(180deg, rgba(37, 99, 235, 0.03) 0%, transparent 100%);
+    position: relative;
+}
+
+.section-badge {
+    display: inline-block;
+    padding: 8px 20px;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(37, 99, 235, 0.05));
+    color: var(--color-royal-blue, #2563eb);
+    border-radius: 30px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    border: 1px solid rgba(37, 99, 235, 0.2);
+}
+
+.section-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.section-subtitle {
+    color: var(--text-muted, #6b7280);
+    font-size: 1.1rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.recommendation-card {
+    background: var(--bg-secondary, white);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.08));
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    height: 100%;
+    position: relative;
+}
+
+.recommendation-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #2563eb, #3b82f6, #60a5fa);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.recommendation-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-xl, 0 12px 40px rgba(0, 0, 0, 0.15));
+}
+
+.recommendation-card:hover::before {
+    opacity: 1;
+}
+
+.recommendation-image {
+    position: relative;
+    height: 200px;
+    overflow: hidden;
+}
+
+.recommendation-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.recommendation-card:hover .recommendation-image img {
+    transform: scale(1.1);
+}
+
+.ai-match-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.ai-match-badge i {
+    font-size: 0.9rem;
+}
+
+.recommendation-body {
+    padding: 1.5rem;
+}
+
+.recommendation-type {
+    font-size: 0.8rem;
+    color: var(--color-royal-blue, #2563eb);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+}
+
+.recommendation-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary, #1f2937);
+    margin-bottom: 0.5rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-clamp: 2;
+}
+
+.recommendation-location {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-muted, #6b7280);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.recommendation-location i {
+    color: var(--color-crimson, #dc143c);
+}
+
+.recommendation-features {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.recommendation-feature {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: var(--text-secondary, #4b5563);
+}
+
+.recommendation-feature i {
+    color: var(--color-royal-blue, #2563eb);
+}
+
+.recommendation-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.recommendation-price {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--color-royal-blue, #2563eb);
+}
+
+.recommendation-price small {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--text-muted, #6b7280);
+}
+
+.recommendation-rating {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.9rem;
+}
+
+.recommendation-rating i {
+    color: #fbbf24;
+}
+
+.recommendation-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .recommendation-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .recommendation-title {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .section-subtitle {
+    color: var(--text-secondary);
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadRecommendations();
+});
+
+function loadRecommendations() {
+    const loading = document.getElementById('recommendationsLoading');
+    const grid = document.getElementById('recommendationsGrid');
+    const empty = document.getElementById('recommendationsEmpty');
+    const refresh = document.getElementById('refreshRecommendations');
+    
+    // Show loading
+    loading.style.display = 'block';
+    grid.style.display = 'none';
+    empty.style.display = 'none';
+    refresh.style.display = 'none';
+    
+    // Get viewed properties from localStorage
+    const viewedProperties = JSON.parse(localStorage.getItem('viewed_properties') || '[]');
+    
+    // Get user preferences from localStorage
+    const preferences = JSON.parse(localStorage.getItem('property_preferences') || '{}');
+    
+    fetch('{% url "chatbot:recommendations" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            preferences: preferences,
+            viewed_properties: viewedProperties
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        loading.style.display = 'none';
+        
+        if (data.recommendations && data.recommendations.length > 0) {
+            renderRecommendations(data.recommendations);
+            grid.style.display = 'flex';
+            refresh.style.display = 'block';
+        } else {
+            empty.style.display = 'block';
+        }
+    })
+    .catch(error => {
+        console.error('Error loading recommendations:', error);
+        loading.style.display = 'none';
+        empty.style.display = 'block';
+    });
+}
+
+function renderRecommendations(recommendations) {
+    const grid = document.getElementById('recommendationsGrid');
+    grid.innerHTML = '';
+    
+    recommendations.forEach((property, index) => {
+        const matchScore = Math.floor(Math.random() * 10) + 90; // 90-99% match for demo
+        
+        const card = document.createElement('div');
+        card.className = 'col-md-6 col-lg-4';
+        card.innerHTML = `
+            <a href="${property.url}" class="recommendation-link">
+                <div class="recommendation-card" data-aos="fade-up" data-aos-delay="${index * 100}">
+                    <div class="recommendation-image">
+                        <img src="${property.image || '{% static "images/property-placeholder.jpg" %}'}" 
+                             alt="${property.title}"
+                             onerror="this.src='{% static "images/property-placeholder.jpg" %}'">
+                        <div class="ai-match-badge">
+                            <i class="bi bi-stars"></i>
+                            ${matchScore}% Match
+                        </div>
+                    </div>
+                    <div class="recommendation-body">
+                        <div class="recommendation-type">${property.property_type}</div>
+                        <h4 class="recommendation-title">${property.title}</h4>
+                        <div class="recommendation-location">
+                            <i class="bi bi-geo-alt-fill"></i>
+                            ${property.municipality ? property.municipality + ', ' : ''}${property.district}
+                        </div>
+                        <div class="recommendation-features">
+                            ${property.num_rooms ? `
+                            <div class="recommendation-feature">
+                                <i class="bi bi-door-open"></i>
+                                ${property.num_rooms} Rooms
+                            </div>
+                            ` : ''}
+                            ${property.rating ? `
+                            <div class="recommendation-feature">
+                                <i class="bi bi-star-fill"></i>
+                                ${property.rating.toFixed(1)}
+                            </div>
+                            ` : ''}
+                        </div>
+                        <div class="recommendation-footer">
+                            <div class="recommendation-price">
+                                Rs. ${property.price.toLocaleString()}<small>/mo</small>
+                            </div>
+                            ${property.review_count ? `
+                            <div class="recommendation-rating">
+                                <i class="bi bi-chat-dots"></i>
+                                ${property.review_count} reviews
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            </a>
+        `;
+        
+        grid.appendChild(card);
+    });
+}
+
+// Track viewed properties (call this from property detail page)
+function trackPropertyView(propertyId) {
+    const viewed = JSON.parse(localStorage.getItem('viewed_properties') || '[]');
+    if (!viewed.includes(propertyId)) {
+        viewed.push(propertyId);
+        // Keep only last 50 viewed properties
+        if (viewed.length > 50) {
+            viewed.shift();
+        }
+        localStorage.setItem('viewed_properties', JSON.stringify(viewed));
+    }
+}
+
+// Track user preferences
+function trackUserPreference(key, value) {
+    const prefs = JSON.parse(localStorage.getItem('property_preferences') || '{}');
+    prefs[key] = value;
+    localStorage.setItem('property_preferences', JSON.stringify(prefs));
+}
+</script>

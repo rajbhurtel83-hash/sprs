@@ -1,0 +1,239 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Manage Property Requests{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h2 class="fw-bold mb-1"><i class="bi bi-inbox me-2 text-primary"></i>Property Requests</h2>
+            <p class="text-muted mb-0">Review and respond to visit, inquiry, and booking requests.</p>
+        </div>
+        <a href="{% url 'properties:my_properties' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>My Properties
+        </a>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Filter tabs -->
+    <ul class="nav nav-tabs mb-4" id="requestTabs">
+        <li class="nav-item">
+            <button class="nav-link active" data-filter="all">All</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-filter="booking">
+                <i class="bi bi-calendar2-check me-1 text-success"></i>Bookings
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-filter="visit">
+                <i class="bi bi-calendar-event me-1 text-primary"></i>Visits
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-filter="inquiry">
+                <i class="bi bi-chat-square-text me-1 text-secondary"></i>Inquiries
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-filter="pending">
+                <i class="bi bi-hourglass-split me-1 text-warning"></i>Pending
+            </button>
+        </li>
+    </ul>
+
+    {% if requests %}
+    <div class="row g-3" id="requestsContainer">
+        {% for req in requests %}
+        <div class="col-12 request-item"
+             data-type="{{ req.request_type }}"
+             data-status="{{ req.status }}">
+            <div class="card shadow-sm border-0
+                {% if req.request_type == 'booking' %}border-start border-success border-4{% elif req.request_type == 'visit' %}border-start border-primary border-4{% else %}border-start border-secondary border-4{% endif %}">
+                <div class="card-body">
+                    <div class="row align-items-start g-3">
+
+                        <!-- Type badge + property info -->
+                        <div class="col-md-5">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                {% if req.request_type == 'booking' %}
+                                <span class="badge bg-success"><i class="bi bi-calendar2-check me-1"></i>Booking</span>
+                                {% elif req.request_type == 'visit' %}
+                                <span class="badge bg-primary"><i class="bi bi-calendar-event me-1"></i>Visit</span>
+                                {% else %}
+                                <span class="badge bg-secondary"><i class="bi bi-chat-square-text me-1"></i>Inquiry</span>
+                                {% endif %}
+
+                                {% if req.status == 'pending' %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                                {% elif req.status == 'approved' %}
+                                <span class="badge bg-success">Approved</span>
+                                {% else %}
+                                <span class="badge bg-danger">Rejected</span>
+                                {% endif %}
+                            </div>
+
+                            <h6 class="fw-bold mb-1">
+                                <a href="{% url 'properties:detail' req.property.pk %}" class="text-decoration-none">
+                                    {{ req.property.title|truncatechars:50 }}
+                                </a>
+                            </h6>
+                            <small class="text-muted">
+                                <i class="bi bi-geo-alt me-1"></i>{{ req.property.district }}
+                                &nbsp;·&nbsp;
+                                <i class="bi bi-tag me-1"></i>Rs. {{ req.property.price|intcomma }}/mo
+                            </small>
+                        </div>
+
+                        <!-- Requester + booking details -->
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                {% if req.requester.profile_picture %}
+                                <img src="{{ req.requester.profile_picture.url }}" class="rounded-circle" width="32" height="32" style="object-fit:cover;">
+                                {% else %}
+                                <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0" style="width:32px;height:32px;">
+                                    <i class="bi bi-person text-primary"></i>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <div class="fw-semibold small">{{ req.requester.get_full_name|default:req.requester.username }}</div>
+                                    <small class="text-muted">{{ req.created_at|naturaltime }}</small>
+                                </div>
+                            </div>
+
+                            {% if req.request_type == 'booking' %}
+                            <div class="small">
+                                {% if req.move_in_date %}
+                                <div><i class="bi bi-calendar me-1 text-success"></i>Move-in: <strong>{{ req.move_in_date|date:"M d, Y" }}</strong></div>
+                                {% endif %}
+                                {% if req.duration_months %}
+                                <div><i class="bi bi-clock me-1 text-success"></i>Duration: <strong>{{ req.duration_months }} month{{ req.duration_months|pluralize }}</strong></div>
+                                {% endif %}
+                                {% if req.move_in_date and req.duration_months %}
+                                <div class="text-success fw-semibold">
+                                    <i class="bi bi-cash-coin me-1"></i>Est. Total: Rs. {{ req.property.price|floatformat:0|intcomma }} × {{ req.duration_months }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+
+                            <p class="small text-muted mb-0 mt-1" style="white-space: pre-line;">{{ req.message|truncatechars:120 }}</p>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="col-md-3 text-md-end">
+                            {% if req.status == 'pending' %}
+                            <form method="post" action="{% url 'properties:respond_request' req.pk %}" class="d-inline">
+                                {% csrf_token %}
+                                <button name="action" value="approve" class="btn btn-success btn-sm mb-1 w-100">
+                                    <i class="bi bi-check-lg me-1"></i>
+                                    {% if req.request_type == 'booking' %}Confirm Booking{% else %}Approve{% endif %}
+                                </button>
+                                <button name="action" value="reject" class="btn btn-outline-danger btn-sm w-100"
+                                        onclick="return confirm('Reject this request?')">
+                                    <i class="bi bi-x-lg me-1"></i>Reject
+                                </button>
+                            </form>
+                            {% else %}
+                            <div class="text-muted small">
+                                Responded {{ req.responded_at|naturaltime }}
+                            </div>
+                            {% if req.status == 'approved' %}
+                            <a href="{% url 'messaging:start' req.property.pk %}" class="btn btn-outline-primary btn-sm mt-1">
+                                <i class="bi bi-chat-dots me-1"></i>Message Tenant
+                            </a>
+                            {% endif %}
+                            {% endif %}
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if requests.has_other_pages %}
+    <nav class="mt-4" aria-label="Requests pagination">
+        <ul class="pagination justify-content-center">
+            {% if requests.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ requests.previous_page_number }}">Previous</a>
+            </li>
+            {% endif %}
+            <li class="page-item active">
+                <span class="page-link">{{ requests.number }} / {{ requests.paginator.num_pages }}</span>
+            </li>
+            {% if requests.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ requests.next_page_number }}">Next</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+    <div id="emptyMsg" class="text-center py-5 d-none">
+        <i class="bi bi-inbox text-muted" style="font-size:3rem;"></i>
+        <p class="text-muted mt-2">No requests in this category.</p>
+    </div>
+
+    {% else %}
+    <div class="text-center py-5">
+        <i class="bi bi-inbox text-muted" style="font-size:4rem;"></i>
+        <h5 class="mt-3 text-muted">No Requests Yet</h5>
+        <p class="text-muted">When tenants submit booking, visit, or inquiry requests for your properties, they'll appear here.</p>
+        <a href="{% url 'properties:my_properties' %}" class="btn btn-primary mt-2">
+            <i class="bi bi-building me-1"></i>View My Properties
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    var tabs = document.querySelectorAll('[data-filter]');
+    var items = document.querySelectorAll('.request-item');
+    var emptyMsg = document.getElementById('emptyMsg');
+
+    tabs.forEach(function(tab) {
+        tab.addEventListener('click', function() {
+            tabs.forEach(function(t) { t.classList.remove('active'); });
+            tab.classList.add('active');
+
+            var filter = tab.getAttribute('data-filter');
+            var visible = 0;
+
+            items.forEach(function(item) {
+                var show = false;
+                if (filter === 'all') {
+                    show = true;
+                } else if (filter === 'pending') {
+                    show = item.dataset.status === 'pending';
+                } else {
+                    show = item.dataset.type === filter;
+                }
+                item.style.display = show ? '' : 'none';
+                if (show) visible++;
+            });
+
+            if (emptyMsg) {
+                emptyMsg.classList.toggle('d-none', visible > 0);
+            }
+        });
+    });
+})();
+</script>
+{% endblock %}

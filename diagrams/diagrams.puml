@@ -1,0 +1,514 @@
+@startuml Use Case Diagram
+title Smart Property Rental System - Use Case Diagram
+
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Tenant" as tenant
+actor "Property Owner" as owner
+actor "Admin" as admin
+
+rectangle "Smart Property Rental System" {
+    ' Authentication
+    usecase "Register Account" as UC1
+    usecase "Login" as UC2
+    usecase "Logout" as UC3
+    usecase "Edit Profile" as UC4
+
+    ' Property Browsing
+    usecase "Browse Properties" as UC5
+    usecase "Search Properties" as UC6
+    usecase "Filter Properties" as UC7
+    usecase "View Property Details" as UC8
+
+    ' Messaging
+    usecase "Send Message to Owner" as UC9
+    usecase "View Inbox" as UC10
+    usecase "Reply to Message" as UC11
+    usecase "View Conversation History" as UC12
+
+    ' Property Management
+    usecase "Add Property Listing" as UC13
+    usecase "Edit Property Listing" as UC14
+    usecase "Delete Property Listing" as UC15
+    usecase "Manage Property Images" as UC16
+    usecase "View My Listings" as UC17
+    usecase "Receive Tenant Messages" as UC18
+
+    ' Admin
+    usecase "Admin Dashboard" as UC19
+    usecase "Manage Users" as UC20
+    usecase "Activate/Deactivate User" as UC21
+    usecase "Manage Properties" as UC22
+    usecase "Approve/Disapprove Listing" as UC23
+    usecase "Delete Listing" as UC24
+}
+
+' Tenant associations
+tenant --> UC1
+tenant --> UC2
+tenant --> UC3
+tenant --> UC4
+tenant --> UC5
+tenant --> UC6
+tenant --> UC7
+tenant --> UC8
+tenant --> UC9
+tenant --> UC10
+tenant --> UC11
+tenant --> UC12
+
+' Owner associations
+owner --> UC1
+owner --> UC2
+owner --> UC3
+owner --> UC4
+owner --> UC5
+owner --> UC8
+owner --> UC10
+owner --> UC11
+owner --> UC12
+owner --> UC13
+owner --> UC14
+owner --> UC15
+owner --> UC16
+owner --> UC17
+owner --> UC18
+
+' Admin associations
+admin --> UC2
+admin --> UC3
+admin --> UC19
+admin --> UC20
+admin --> UC21
+admin --> UC22
+admin --> UC23
+admin --> UC24
+
+' Includes
+UC6 ..> UC5 : <<include>>
+UC7 ..> UC5 : <<include>>
+UC9 ..> UC8 : <<extend>>
+UC21 ..> UC20 : <<include>>
+UC23 ..> UC22 : <<include>>
+UC24 ..> UC22 : <<include>>
+
+@enduml
+
+
+@startuml ER Diagram
+title Smart Property Rental System - Entity Relationship Diagram
+
+entity "User" as user {
+    * id : BigAutoField <<PK>>
+    --
+    * username : VARCHAR(150) <<UNIQUE>>
+    * password : VARCHAR(128)
+    * email : VARCHAR(254)
+    * first_name : VARCHAR(150)
+    * last_name : VARCHAR(150)
+    * role : VARCHAR(10)
+    phone : VARCHAR(20)
+    address : VARCHAR(255)
+    profile_picture : ImageField
+    * is_active : BOOLEAN
+    * is_staff : BOOLEAN
+    * is_superuser : BOOLEAN
+    * date_joined : TIMESTAMP
+    * created_at : TIMESTAMP
+    * updated_at : TIMESTAMP
+}
+
+entity "Property" as property {
+    * id : BigAutoField <<PK>>
+    --
+    * owner_id : BigInt <<FK>>
+    * title : VARCHAR(200)
+    * property_type : VARCHAR(20)
+    * description : TEXT
+    * district : VARCHAR(100)
+    * ward_number : VARCHAR(10)
+    * address : VARCHAR(255)
+    * price : DECIMAL(12,2)
+    * num_rooms : INTEGER
+    * status : VARCHAR(20)
+    contact_phone : VARCHAR(20)
+    contact_email : VARCHAR(254)
+    * is_approved : BOOLEAN
+    * created_at : TIMESTAMP
+    * updated_at : TIMESTAMP
+}
+
+entity "PropertyImage" as image {
+    * id : BigAutoField <<PK>>
+    --
+    * property_id : BigInt <<FK>>
+    * image : ImageField
+    caption : VARCHAR(200)
+    * uploaded_at : TIMESTAMP
+}
+
+entity "Conversation" as conversation {
+    * id : BigAutoField <<PK>>
+    --
+    * property_id : BigInt <<FK>>
+    * tenant_id : BigInt <<FK>>
+    * owner_id : BigInt <<FK>>
+    * created_at : TIMESTAMP
+    * updated_at : TIMESTAMP
+}
+
+entity "Message" as message {
+    * id : BigAutoField <<PK>>
+    --
+    * conversation_id : BigInt <<FK>>
+    * sender_id : BigInt <<FK>>
+    * content : TEXT
+    * is_read : BOOLEAN
+    * created_at : TIMESTAMP
+}
+
+user ||--o{ property : "owns"
+user ||--o{ conversation : "tenant_in"
+user ||--o{ conversation : "owner_in"
+user ||--o{ message : "sends"
+property ||--o{ image : "has"
+property ||--o{ conversation : "about"
+conversation ||--o{ message : "contains"
+
+@enduml
+
+
+@startuml Class Diagram
+title Smart Property Rental System - Class Diagram
+
+package "users" {
+    class User {
+        - id: BigAutoField
+        - username: CharField
+        - password: CharField
+        - email: EmailField
+        - first_name: CharField
+        - last_name: CharField
+        - role: CharField
+        - phone: CharField
+        - address: CharField
+        - profile_picture: ImageField
+        - created_at: DateTimeField
+        - updated_at: DateTimeField
+        --
+        + is_tenant: bool
+        + is_owner: bool
+        + is_admin_user: bool
+        + __str__(): str
+    }
+
+    class UserRegistrationForm {
+        + email: EmailField
+        + first_name: CharField
+        + last_name: CharField
+        + phone: CharField
+        + role: ChoiceField
+    }
+
+    class UserLoginForm {
+        + username: CharField
+        + password: CharField
+    }
+
+    class UserProfileForm {
+        + first_name: CharField
+        + last_name: CharField
+        + email: EmailField
+        + phone: CharField
+        + address: CharField
+        + profile_picture: ImageField
+    }
+}
+
+package "properties" {
+    class Property {
+        - id: BigAutoField
+        - owner: ForeignKey(User)
+        - title: CharField
+        - property_type: CharField
+        - description: TextField
+        - district: CharField
+        - ward_number: CharField
+        - address: CharField
+        - price: DecimalField
+        - num_rooms: PositiveIntegerField
+        - status: CharField
+        - contact_phone: CharField
+        - contact_email: EmailField
+        - is_approved: BooleanField
+        - created_at: DateTimeField
+        - updated_at: DateTimeField
+        --
+        + primary_image: PropertyImage
+        + get_absolute_url(): str
+        + __str__(): str
+    }
+
+    class PropertyImage {
+        - id: BigAutoField
+        - property: ForeignKey(Property)
+        - image: ImageField
+        - caption: CharField
+        - uploaded_at: DateTimeField
+        --
+        + __str__(): str
+    }
+
+    class PropertyForm {
+        + title: CharField
+        + property_type: ChoiceField
+        + description: TextField
+        + district: CharField
+        + ward_number: CharField
+        + address: CharField
+        + price: DecimalField
+        + num_rooms: IntegerField
+        + status: ChoiceField
+    }
+
+    class PropertySearchForm {
+        + keyword: CharField
+        + property_type: ChoiceField
+        + district: CharField
+        + ward_number: CharField
+        + min_price: DecimalField
+        + max_price: DecimalField
+    }
+}
+
+package "messaging" {
+    class Conversation {
+        - id: BigAutoField
+        - property: ForeignKey(Property)
+        - tenant: ForeignKey(User)
+        - owner: ForeignKey(User)
+        - created_at: DateTimeField
+        - updated_at: DateTimeField
+        --
+        + last_message: Message
+        + unread_count_for(user): int
+        + __str__(): str
+    }
+
+    class Message {
+        - id: BigAutoField
+        - conversation: ForeignKey(Conversation)
+        - sender: ForeignKey(User)
+        - content: TextField
+        - is_read: BooleanField
+        - created_at: DateTimeField
+        --
+        + __str__(): str
+    }
+
+    class MessageForm {
+        + content: TextField
+    }
+}
+
+User "1" -- "*" Property : owns
+User "1" -- "*" Conversation : participates
+User "1" -- "*" Message : sends
+Property "1" -- "*" PropertyImage : has
+Property "1" -- "*" Conversation : about
+Conversation "1" -- "*" Message : contains
+
+@enduml
+
+
+@startuml Sequence Diagram - Property Listing
+title Sequence Diagram - Property Owner Creates Listing
+
+actor "Property Owner" as owner
+participant "Browser" as browser
+participant "Django Views" as views
+participant "PropertyForm" as form
+participant "Property Model" as model
+database "PostgreSQL" as db
+
+owner -> browser : Navigate to Add Property
+browser -> views : GET /properties/create/
+views -> views : Check authentication & role
+views -> form : Create empty PropertyForm
+views --> browser : Render create.html
+
+owner -> browser : Fill form & submit
+browser -> views : POST /properties/create/
+views -> form : Validate form data
+form -> form : clean and validate
+alt Valid Data
+    form --> views : form.is_valid() = True
+    views -> model : Create Property instance
+    model -> db : INSERT INTO properties_property
+    db --> model : Return created object
+    views -> db : Save uploaded images
+    views --> browser : Redirect to property detail
+    browser --> owner : Show property detail page
+else Invalid Data
+    form --> views : form.is_valid() = False
+    views --> browser : Re-render form with errors
+    browser --> owner : Show validation errors
+end
+
+@enduml
+
+
+@startuml Sequence Diagram - Messaging
+title Sequence Diagram - Tenant Sends Message to Owner
+
+actor "Tenant" as tenant
+participant "Browser" as browser
+participant "Django Views" as views
+participant "Models" as models
+database "PostgreSQL" as db
+
+tenant -> browser : Click "Send Message" on property page
+browser -> views : GET /messaging/start/{property_id}/
+views -> db : Check existing conversation
+alt No existing conversation
+    views --> browser : Render start_conversation.html
+    tenant -> browser : Type message & submit
+    browser -> views : POST /messaging/start/{property_id}/
+    views -> models : Create Conversation
+    models -> db : INSERT INTO messaging_conversation
+    views -> models : Create Message
+    models -> db : INSERT INTO messaging_message
+    views --> browser : Redirect to conversation
+else Conversation exists
+    views --> browser : Redirect to existing conversation
+end
+
+browser --> tenant : Show conversation thread
+
+@enduml
+
+
+@startuml Sequence Diagram - Property Search
+title Sequence Diagram - Tenant Searches for Properties
+
+actor "Tenant" as tenant
+participant "Browser" as browser
+participant "Django Views" as views
+participant "QuerySet" as qs
+database "PostgreSQL" as db
+
+tenant -> browser : Navigate to Properties
+browser -> views : GET /properties/
+views -> qs : Property.objects.filter(available, approved)
+qs -> db : SELECT * FROM properties
+db --> qs : Return results
+views --> browser : Render property list
+
+tenant -> browser : Apply filters & search
+browser -> views : GET /properties/?keyword=X&district=Y&...
+views -> qs : Apply keyword filter (Q lookup)
+views -> qs : Apply district filter
+views -> qs : Apply price range filter
+views -> qs : Apply type filter
+qs -> db : SELECT with WHERE clauses
+db --> qs : Return filtered results
+views -> views : Paginate results
+views --> browser : Render filtered list
+browser --> tenant : Show filtered properties
+
+@enduml
+
+
+@startuml Activity Diagram - User Registration
+title Activity Diagram - User Registration Flow
+
+start
+
+:User visits registration page;
+
+:User fills registration form;
+:User selects role (Tenant/Owner);
+:User submits form;
+
+if (Form valid?) then (yes)
+    if (Username unique?) then (yes)
+        if (Email valid?) then (yes)
+            if (Password meets requirements?) then (yes)
+                :Create user account;
+                :Hash password securely;
+                :Save to database;
+                :Auto-login user;
+                :Redirect to dashboard;
+                stop
+            else (no)
+                :Show password error;
+            endif
+        else (no)
+            :Show email error;
+        endif
+    else (no)
+        :Show username error;
+    endif
+else (no)
+    :Show form errors;
+endif
+
+:Re-display form with errors;
+:User corrects errors;
+
+-> Re-submit;
+
+:User submits form;
+
+note right
+    Loop continues until
+    valid data is submitted
+end note
+
+stop
+
+@enduml
+
+
+@startuml Activity Diagram - Property Rental Flow
+title Activity Diagram - Complete Property Rental Flow
+
+|Tenant|
+start
+:Browse property listings;
+:Search and filter properties;
+:View property details;
+
+if (Interested?) then (yes)
+    :Click "Send Message";
+    :Write inquiry message;
+    :Submit message;
+else (no)
+    :Continue browsing;
+    stop
+endif
+
+|Property Owner|
+:Receive message notification;
+:View tenant inquiry;
+:Reply to tenant;
+
+|Tenant|
+:Receive owner reply;
+:Continue conversation;
+
+if (Agree on terms?) then (yes)
+    |Property Owner|
+    :Update property status to "Rented";
+    :Confirm rental arrangement;
+    |Tenant|
+    :Rental confirmed;
+else (no)
+    |Tenant|
+    :Continue searching;
+endif
+
+stop
+
+@enduml

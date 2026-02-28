@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow border-0">
+                <div class="card-body p-4 p-md-5">
+                    <!-- Header -->
+                    <div class="text-center mb-4">
+                        <i class="bi bi-person-plus-fill text-primary" style="font-size: 2.5rem;"></i>
+                        <h2 class="fw-bold mt-2">Create an Account</h2>
+                        <p class="text-muted">Join SPRS to find or list rental properties</p>
+                    </div>
+
+                    <!-- Non-field errors -->
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                        <p class="mb-0">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+
+                        <!-- Row: First Name / Last Name -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.first_name.id_for_label }}" class="form-label">
+                                    First Name <span class="text-danger">*</span>
+                                </label>
+                                {{ form.first_name }}
+                                {% if form.first_name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.first_name.errors %}{{ error }}{% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.last_name.id_for_label }}" class="form-label">
+                                    Last Name <span class="text-danger">*</span>
+                                </label>
+                                {{ form.last_name }}
+                                {% if form.last_name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.last_name.errors %}{{ error }}{% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Username -->
+                        <div class="mb-3">
+                            <label for="{{ form.username.id_for_label }}" class="form-label">
+                                Username <span class="text-danger">*</span>
+                            </label>
+                            {{ form.username }}
+                            {% if form.username.help_text %}
+                            <div class="form-text">{{ form.username.help_text }}</div>
+                            {% endif %}
+                            {% if form.username.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.username.errors %}{{ error }}{% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Email -->
+                        <div class="mb-3">
+                            <label for="{{ form.email.id_for_label }}" class="form-label">
+                                Email Address <span class="text-danger">*</span>
+                            </label>
+                            {{ form.email }}
+                            {% if form.email.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.email.errors %}{{ error }}{% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Phone -->
+                        <div class="mb-3">
+                            <label for="{{ form.phone.id_for_label }}" class="form-label">
+                                Phone Number
+                            </label>
+                            {{ form.phone }}
+                            {% if form.phone.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.phone.errors %}{{ error }}{% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Role Selection -->
+                        <div class="mb-3">
+                            <label class="form-label d-block">
+                                I want to register as <span class="text-danger">*</span>
+                            </label>
+                            <div class="d-flex gap-4 mt-1">
+                                {% for radio in form.role %}
+                                <div class="form-check">
+                                    {{ radio.tag }}
+                                    <label class="form-check-label" for="{{ radio.id_for_label }}">
+                                        {{ radio.choice_label }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% if form.role.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.role.errors %}{{ error }}{% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Password -->
+                        <div class="mb-3">
+                            <label for="{{ form.password1.id_for_label }}" class="form-label">
+                                Password <span class="text-danger">*</span>
+                            </label>
+                            {{ form.password1 }}
+                            {% if form.password1.help_text %}
+                            <div class="form-text">{{ form.password1.help_text }}</div>
+                            {% endif %}
+                            {% if form.password1.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.password1.errors %}{{ error }}{% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Confirm Password -->
+                        <div class="mb-4">
+                            <label for="{{ form.password2.id_for_label }}" class="form-label">
+                                Confirm Password <span class="text-danger">*</span>
+                            </label>
+                            {{ form.password2 }}
+                            {% if form.password2.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.password2.errors %}{{ error }}{% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Submit -->
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-person-plus me-2"></i>Create Account
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Login Link -->
+                    <div class="text-center mt-4">
+                        <p class="text-muted mb-0">
+                            Already have an account?
+                            <a href="{% url 'users:login' %}" class="text-decoration-none fw-semibold">Sign in here</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

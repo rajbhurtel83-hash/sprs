@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Notifications{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold mb-0"><i class="bi bi-bell me-2"></i>Notifications</h2>
+        {% if unread_notification_count > 0 %}
+        <button class="btn btn-sm btn-outline-primary" id="markAllRead">
+            <i class="bi bi-check-all me-1"></i>Mark All Read
+        </button>
+        {% endif %}
+    </div>
+    
+    {% if page_obj %}
+    <div class="list-group">
+        {% for notif in page_obj %}
+        <div class="list-group-item list-group-item-action {% if not notif.is_read %}border-start border-3 border-crimson bg-light{% endif %}" id="notif-{{ notif.pk }}">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="d-flex gap-3">
+                    <div class="notification-icon">
+                        {% if notif.notification_type == 'message' %}
+                        <i class="bi bi-chat-dots text-primary fs-4"></i>
+                        {% elif notif.notification_type == 'request' %}
+                        <i class="bi bi-send text-warning fs-4"></i>
+                        {% elif notif.notification_type == 'approval' %}
+                        <i class="bi bi-check-circle text-success fs-4"></i>
+                        {% elif notif.notification_type == 'rejection' %}
+                        <i class="bi bi-x-circle text-danger fs-4"></i>
+                        {% elif notif.notification_type == 'review' %}
+                        <i class="bi bi-star text-warning fs-4"></i>
+                        {% elif notif.notification_type == 'listing' %}
+                        <i class="bi bi-house-add text-info fs-4"></i>
+                        {% else %}
+                        <i class="bi bi-info-circle text-secondary fs-4"></i>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h6 class="mb-1 fw-bold">{{ notif.title }}</h6>
+                        <p class="mb-1 text-muted small">{{ notif.message }}</p>
+                        {% if notif.link %}
+                        <a href="{{ notif.link }}" class="small">View Details</a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="text-end">
+                    <small class="text-muted">{{ notif.created_at|timesince }} ago</small>
+                    {% if not notif.is_read %}
+                    <br>
+                    <button class="btn btn-sm btn-link text-muted p-0 mt-1 mark-read" data-id="{{ notif.pk }}">
+                        Mark read
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    {% if page_obj.has_other_pages %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a></li>
+            {% endif %}
+            {% for num in page_obj.paginator.page_range %}
+            <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+            </li>
+            {% endfor %}
+            {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-bell-slash"></i>
+        <h5>No notifications</h5>
+        <p>You're all caught up! Notifications will appear here.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const csrfToken = '{{ csrf_token }}';
+
+document.querySelectorAll('.mark-read').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const id = this.dataset.id;
+        fetch(`/notifications/read/${id}/`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrfToken},
+        })
+        .then(r => r.json())
+        .then(() => {
+            const el = document.getElementById(`notif-${id}`);
+            el.classList.remove('border-start', 'border-3', 'border-crimson', 'bg-light');
+            this.remove();
+        });
+    });
+});
+
+const markAllBtn = document.getElementById('markAllRead');
+if (markAllBtn) {
+    markAllBtn.addEventListener('click', function() {
+        fetch('/notifications/read-all/', {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrfToken},
+        })
+        .then(r => r.json())
+        .then(() => {
+            document.querySelectorAll('.list-group-item').forEach(el => {
+                el.classList.remove('border-start', 'border-3', 'border-crimson', 'bg-light');
+            });
+            document.querySelectorAll('.mark-read').forEach(b => b.remove());
+            this.remove();
+        });
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,1028 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% load static %}
+
+{% block title %}{{ property.title }}{% endblock %}
+
+{% block extra_css %}
+{% if property.has_location %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+{% endif %}
+<style>
+/* Star rating input */
+.star-rating-input {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    gap: 2px;
+}
+.star-rating-input input { display: none; }
+.star-rating-input label {
+    cursor: pointer;
+    font-size: 1.5rem;
+    color: #dee2e6;
+    transition: color 0.15s;
+}
+.star-rating-input input:checked ~ label,
+.star-rating-input label:hover,
+.star-rating-input label:hover ~ label {
+    color: #ffc107;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'properties:list' %}" class="text-decoration-none">Properties</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ property.title|truncatewords:5 }}</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4">
+        <!-- Left Column: Images, Description, Reviews -->
+        <div class="col-lg-8">
+            <!-- Image Carousel -->
+            {% if property.images.all %}
+            <div id="propertyCarousel" class="carousel slide shadow-sm rounded overflow-hidden mb-4" data-bs-ride="carousel">
+                {% if property.images.count > 1 %}
+                <div class="carousel-indicators">
+                    {% for image in property.images.all %}
+                    <button type="button" data-bs-target="#propertyCarousel" data-bs-slide-to="{{ forloop.counter0 }}"
+                            {% if forloop.first %}class="active" aria-current="true"{% endif %}
+                            aria-label="Slide {{ forloop.counter }}"></button>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <div class="carousel-inner">
+                    {% for image in property.images.all %}
+                    <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                        <img src="{{ image.image.url }}" class="d-block w-100"
+                             style="height: 450px; object-fit: cover;"
+                             alt="{{ image.caption|default:property.title }}">
+                        {% if image.caption %}
+                        <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded px-3 py-1">
+                            <p class="mb-0">{{ image.caption }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if property.images.count > 1 %}
+                <button class="carousel-control-prev" type="button" data-bs-target="#propertyCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#propertyCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="bg-light rounded d-flex align-items-center justify-content-center mb-4 shadow-sm" style="height: 350px;">
+                <div class="text-center text-muted">
+                    <i class="bi bi-image" style="font-size: 5rem;"></i>
+                    <p class="mt-2 mb-0">No images available</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Title, Badges, and Actions Row -->
+            <div class="d-flex flex-wrap justify-content-between align-items-start mb-4">
+                <div>
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                        <span class="badge bg-primary fs-6">{{ property.get_property_type_display }}</span>
+                        {% if property.status == 'available' %}
+                        <span class="badge bg-success fs-6">{{ property.get_status_display }}</span>
+                        {% elif property.status == 'rented' %}
+                        <span class="badge bg-warning text-dark fs-6">{{ property.get_status_display }}</span>
+                        {% else %}
+                        <span class="badge bg-danger fs-6">{{ property.get_status_display }}</span>
+                        {% endif %}
+                        {% if property.rental_purpose and property.rental_purpose != 'any' %}
+                        <span class="badge bg-info text-dark fs-6">{{ property.get_rental_purpose_display }}</span>
+                        {% endif %}
+                    </div>
+                    <h1 class="h2 fw-bold mb-1">{{ property.title }}</h1>
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-geo-alt me-1"></i>
+                        {{ property.address }}{% if property.municipality %}, {{ property.municipality }}{% endif %}, {{ property.district }} - Ward {{ property.ward_number }}
+                    </p>
+                </div>
+                <!-- Favorite Button -->
+                {% if user.is_authenticated and user != property.owner %}
+                <button class="btn {% if is_favorited %}btn-danger{% else %}btn-outline-danger{% endif %} mt-2 mt-md-0"
+                        id="favoriteBtn" data-property-id="{{ property.pk }}">
+                    <i class="bi {% if is_favorited %}bi-heart-fill{% else %}bi-heart{% endif %} me-1"></i>
+                    <span id="favText">{% if is_favorited %}Saved{% else %}Save{% endif %}</span>
+                </button>
+                {% endif %}
+                <!-- Compare Button -->
+                <button class="btn btn-outline-primary mt-2 mt-md-0 ms-2"
+                        id="compareBtn" data-property-id="{{ property.pk }}"
+                        onclick="addToComparison({{ property.pk }})">
+                    <i class="bi bi-stack me-1"></i>
+                    <span id="compareText">Compare</span>
+                </button>
+            </div>
+
+            <!-- Star Rating Summary -->
+            {% if property.review_count > 0 %}
+            <div class="d-flex align-items-center gap-2 mb-4">
+                <div class="text-warning">
+                    {% for i in "12345" %}
+                        {% if forloop.counter <= property.average_rating %}
+                        <i class="bi bi-star-fill"></i>
+                        {% else %}
+                        <i class="bi bi-star"></i>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <span class="fw-semibold">{{ property.average_rating|floatformat:1 }}</span>
+                <span class="text-muted">({{ property.review_count }} review{{ property.review_count|pluralize }})</span>
+                <span class="text-muted ms-3"><i class="bi bi-eye me-1"></i>{{ property.views_count }} views</span>
+            </div>
+            {% else %}
+            <div class="mb-4">
+                <span class="text-muted"><i class="bi bi-eye me-1"></i>{{ property.views_count }} views</span>
+            </div>
+            {% endif %}
+
+            <!-- Description -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-file-text me-2"></i>Description</h5>
+                    <p class="card-text" style="white-space: pre-line;">{{ property.description }}</p>
+                </div>
+            </div>
+
+            <!-- Property Details Grid -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-list-check me-2"></i>Property Details</h5>
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <div class="d-flex align-items-center p-3 bg-light rounded">
+                                <i class="bi bi-building text-primary me-3" style="font-size: 1.5rem;"></i>
+                                <div><small class="text-muted d-block">Property Type</small><strong>{{ property.get_property_type_display }}</strong></div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="d-flex align-items-center p-3 bg-light rounded">
+                                <i class="bi bi-door-open text-primary me-3" style="font-size: 1.5rem;"></i>
+                                <div><small class="text-muted d-block">Rooms</small><strong>{{ property.num_rooms|default:"N/A" }}</strong></div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="d-flex align-items-center p-3 bg-light rounded">
+                                <i class="bi bi-geo text-primary me-3" style="font-size: 1.5rem;"></i>
+                                <div><small class="text-muted d-block">District</small><strong>{{ property.district }}</strong></div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="d-flex align-items-center p-3 bg-light rounded">
+                                <i class="bi bi-signpost text-primary me-3" style="font-size: 1.5rem;"></i>
+                                <div><small class="text-muted d-block">Ward Number</small><strong>{{ property.ward_number }}</strong></div>
+                            </div>
+                        </div>
+                        {% if property.municipality %}
+                        <div class="col-sm-6">
+                            <div class="d-flex align-items-center p-3 bg-light rounded">
+                                <i class="bi bi-pin-map text-primary me-3" style="font-size: 1.5rem;"></i>
+                                <div><small class="text-muted d-block">Municipality</small><strong>{{ property.municipality }}</strong></div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if property.rental_purpose and property.rental_purpose != 'any' %}
+                        <div class="col-sm-6">
+                            <div class="d-flex align-items-center p-3 bg-light rounded">
+                                <i class="bi bi-people text-primary me-3" style="font-size: 1.5rem;"></i>
+                                <div><small class="text-muted d-block">Rental Purpose</small><strong>{{ property.get_rental_purpose_display }}</strong></div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        <div class="col-12">
+                            <div class="d-flex align-items-center p-3 bg-light rounded">
+                                <i class="bi bi-geo-alt text-primary me-3" style="font-size: 1.5rem;"></i>
+                                <div><small class="text-muted d-block">Full Address</small><strong>{{ property.address }}</strong></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Amenities -->
+            {% if property.amenities.all %}
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-check2-square me-2"></i>Amenities</h5>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for amenity in property.amenities.all %}
+                        <span class="badge bg-light text-dark border px-3 py-2 fs-6">
+                            {% if amenity.icon %}<i class="bi bi-{{ amenity.icon }} me-1"></i>{% endif %}
+                            {{ amenity.name }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Map Location -->
+            {% if property.has_location %}
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-map me-2"></i>Location on Map</h5>
+                    <div id="detailMap" class="rounded" style="height: 300px;"></div>
+                    
+                    <!-- View Exact Location & Get Directions Button -->
+                    <div class="mt-3">
+                        <button type="button" class="btn btn-primary w-100" id="viewExactLocationBtn" data-bs-toggle="modal" data-bs-target="#locationDirectionsModal">
+                            <i class="bi bi-geo-alt-fill me-2"></i>View Property Exact Location & Get Directions
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <!-- No coordinates - Show button to view on map anyway -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-map me-2"></i>Property Location</h5>
+                    <div class="text-center py-4">
+                        <i class="bi bi-geo-alt text-muted" style="font-size: 3rem;"></i>
+                        <p class="text-muted mt-2 mb-3">Exact coordinates not available for this property.</p>
+                        <p class="mb-0"><strong>Address:</strong> {{ property.address }}{% if property.municipality %}, {{ property.municipality }}{% endif %}, {{ property.district }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Location Directions Modal -->
+            {% if property.has_location %}
+            <div class="modal fade" id="locationDirectionsModal" tabindex="-1" aria-labelledby="locationDirectionsModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header bg-primary text-white">
+                            <h5 class="modal-title" id="locationDirectionsModalLabel">
+                                <i class="bi bi-compass me-2"></i>Property Location & Directions
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-0">
+                            <div class="row g-0">
+                                <!-- Map Section -->
+                                <div class="col-lg-8">
+                                    <div id="directionsMap" style="height: 500px;"></div>
+                                </div>
+                                
+                                <!-- Directions Info Panel -->
+                                <div class="col-lg-4 bg-light">
+                                    <div class="p-4">
+                                        <h6 class="fw-bold mb-3">
+                                            <i class="bi bi-building text-primary me-2"></i>{{ property.title|truncatewords:5 }}
+                                        </h6>
+                                        <p class="text-muted small mb-4">
+                                            <i class="bi bi-geo-alt me-1"></i>{{ property.address }}{% if property.municipality %}, {{ property.municipality }}{% endif %}, {{ property.district }}
+                                        </p>
+                                        
+                                        <!-- Get User Location -->
+                                        <div class="mb-4">
+                                            <button type="button" class="btn btn-success w-100" id="getMyLocationBtn">
+                                                <i class="bi bi-crosshairs me-2"></i>Detect My Current Location
+                                            </button>
+                                            <div class="text-center mt-2">
+                                                <small class="text-muted" id="locationStatus">Click to get your location</small>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Travel Mode Selection -->
+                                        <div class="mb-4">
+                                            <label class="form-label fw-semibold">Travel Mode</label>
+                                            <div class="btn-group w-100" role="group">
+                                                <input type="radio" class="btn-check" name="travelMode" id="drivingMode" value="DRIVING" checked>
+                                                <label class="btn btn-outline-primary" for="drivingMode">
+                                                    <i class="bi bi-car-front"></i><br><small>Drive</small>
+                                                </label>
+                                                
+                                                <input type="radio" class="btn-check" name="travelMode" id="walkingMode" value="WALKING">
+                                                <label class="btn btn-outline-primary" for="walkingMode">
+                                                    <i class="bi bi-person-walking"></i><br><small>Walk</small>
+                                                </label>
+                                                
+                                                <input type="radio" class="btn-check" name="travelMode" id="transitMode" value="TRANSIT">
+                                                <label class="btn btn-outline-primary" for="transitMode">
+                                                    <i class="bi bi-bus-front"></i><br><small>Transit</small>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Direction Results -->
+                                        <div id="directionResults" class="d-none">
+                                            <div class="card border-0 shadow-sm mb-3">
+                                                <div class="card-body text-center py-3">
+                                                    <div class="row">
+                                                        <div class="col-6 border-end">
+                                                            <div class="text-muted small">Distance</div>
+                                                            <div class="fw-bold fs-5 text-primary" id="totalDistance">--</div>
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <div class="text-muted small">Est. Time</div>
+                                                            <div class="fw-bold fs-5 text-success" id="totalDuration">--</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Turn-by-Turn Directions -->
+                                            <div class="card border-0 shadow-sm">
+                                                <div class="card-header bg-white fw-semibold py-2">
+                                                    <i class="bi bi-signpost-2 me-2"></i>Route Directions
+                                                </div>
+                                                <div class="card-body p-0" style="max-height: 200px; overflow-y: auto;">
+                                                    <div id="directionSteps" class="list-group list-group-flush">
+                                                        <!-- Steps will be populated here -->
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- No Directions Yet -->
+                                        <div id="noDirectionsYet" class="text-center py-4">
+                                            <i class="bi bi-arrow-up-circle text-muted" style="font-size: 2rem;"></i>
+                                            <p class="text-muted mt-2 mb-0 small">Click "Detect My Location" to get directions to this property</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <a href="https://www.google.com/maps/dir/?api=1&destination={{ property.latitude }},{{ property.longitude }}" 
+                               target="_blank" class="btn btn-outline-primary">
+                                <i class="bi bi-box-arrow-up-right me-1"></i>Open in Google Maps
+                            </a>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Reviews Section -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-chat-square-text me-2"></i>Reviews ({{ property.review_count }})</h5>
+
+                    {% if reviews %}
+                    {% for review in reviews %}
+                    <div class="d-flex gap-3 {% if not forloop.last %}mb-3 pb-3 border-bottom{% endif %}">
+                        <div class="flex-shrink-0">
+                            {% if review.reviewer.profile_picture %}
+                            <img src="{{ review.reviewer.profile_picture.url }}" class="rounded-circle" width="40" height="40" style="object-fit:cover;" alt="">
+                            {% else %}
+                            <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style="width:40px;height:40px;">
+                                <i class="bi bi-person text-primary"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <strong class="small">{{ review.reviewer.get_full_name|default:review.reviewer.username }}</strong>
+                                <small class="text-muted">{{ review.created_at|timesince }} ago</small>
+                            </div>
+                            <div class="text-warning mb-1">
+                                {% for i in "12345" %}
+                                    {% if forloop.counter <= review.rating %}
+                                    <i class="bi bi-star-fill small"></i>
+                                    {% else %}
+                                    <i class="bi bi-star small"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            <p class="mb-0 small">{{ review.comment }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <p class="text-muted mb-0">No reviews yet. Be the first to review this property.</p>
+                    {% endif %}
+
+                    <!-- Add Review Form -->
+                    {% if user.is_authenticated and user != property.owner %}
+                    <hr class="my-3">
+                    <h6 class="fw-bold mb-3">Write a Review</h6>
+                    <form method="post" action="{% url 'reviews:add' property.pk %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Rating</label>
+                            <div class="star-rating-input" id="starRatingInput">
+                                {% for i in "54321" %}
+                                <input type="radio" name="rating" value="{{ i }}" id="star{{ i }}" required>
+                                <label for="star{{ i }}" title="{{ i }} star{{ i|pluralize }}"><i class="bi bi-star-fill"></i></label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_comment" class="form-label fw-semibold">Comment</label>
+                            <textarea name="comment" class="form-control" id="id_comment" rows="3" placeholder="Share your experience..." required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-send me-1"></i>Submit Review</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Price, Contact, Actions -->
+        <div class="col-lg-4">
+            <!-- Price Card -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body text-center py-4">
+                    <p class="text-muted mb-1">Monthly Rent</p>
+                    <h2 class="fw-bold text-success mb-0">Rs. {{ property.price|intcomma }}</h2>
+                    <small class="text-muted">per month</small>
+                </div>
+            </div>
+
+            <!-- Owner Contact Card -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-person-circle me-2"></i>Owner Information</h5>
+                    <div class="d-flex align-items-center mb-3">
+                        {% if property.owner.profile_picture %}
+                        <img src="{{ property.owner.profile_picture.url }}" alt="" class="rounded-circle me-3" width="50" height="50" style="object-fit:cover;">
+                        {% else %}
+                        <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center me-3" style="width:50px;height:50px;">
+                            <i class="bi bi-person text-primary" style="font-size:1.5rem;"></i>
+                        </div>
+                        {% endif %}
+                        <div>
+                            <h6 class="mb-0 fw-semibold">{{ property.owner.get_full_name|default:property.owner.username }}</h6>
+                            <small class="text-muted">Property Owner</small>
+                        </div>
+                    </div>
+                    {% if property.contact_phone %}
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-telephone text-muted me-2"></i>
+                        <a href="tel:{{ property.contact_phone }}" class="text-decoration-none">{{ property.contact_phone }}</a>
+                    </div>
+                    {% endif %}
+                    {% if property.contact_email %}
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-envelope text-muted me-2"></i>
+                        <a href="mailto:{{ property.contact_email }}" class="text-decoration-none">{{ property.contact_email }}</a>
+                    </div>
+                    {% endif %}
+                    {% if user.is_authenticated and user != property.owner %}
+                    <a href="{% url 'messaging:start' property.pk %}" class="btn btn-primary w-100">
+                        <i class="bi bi-chat-dots me-2"></i>Send Message
+                    </a>
+                    {% elif not user.is_authenticated %}
+                    <a href="{% url 'users:login' %}?next={{ request.path }}" class="btn btn-outline-primary w-100">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>Login to Contact
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Book / Request Card -->
+            {% if user.is_authenticated and user != property.owner %}
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body p-0">
+                    {% if property.status == 'available' %}
+                    <!-- Book Now CTA -->
+                    <div class="bg-success bg-opacity-10 border border-success border-opacity-25 rounded-top p-3 text-center">
+                        <i class="bi bi-patch-check-fill text-success" style="font-size:1.4rem;"></i>
+                        <p class="mb-1 fw-semibold text-success">This property is available!</p>
+                        <button class="btn btn-success w-100 fw-semibold" data-bs-toggle="modal" data-bs-target="#bookingModal">
+                            <i class="bi bi-calendar2-check me-2"></i>Book Now
+                        </button>
+                    </div>
+                    {% endif %}
+
+                    <!-- Visit / Inquiry shortcuts -->
+                    <div class="p-3">
+                        <p class="small text-muted fw-semibold mb-2 text-uppercase" style="letter-spacing:.05em;">Or</p>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#requestModal" data-type="visit">
+                                <i class="bi bi-calendar-event me-2"></i>Schedule a Visit
+                            </button>
+                            <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#requestModal" data-type="inquiry">
+                                <i class="bi bi-chat-square-text me-2"></i>Send Inquiry
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Booking Modal -->
+            <div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow-lg">
+                        <div class="modal-header bg-success text-white border-0 rounded-top">
+                            <h5 class="modal-title fw-bold" id="bookingModalLabel">
+                                <i class="bi bi-calendar2-check me-2"></i>Book This Property
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <div class="alert alert-success border-0 bg-success bg-opacity-10 small mb-3">
+                                <i class="bi bi-info-circle me-1"></i>
+                                You are booking <strong>{{ property.title }}</strong>. The owner will review and confirm your request.
+                            </div>
+                            <form method="post" action="{% url 'properties:submit_request' property.pk %}" id="bookingForm">
+                                {% csrf_token %}
+                                <input type="hidden" name="request_type" value="booking">
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Preferred Move-in Date <span class="text-danger">*</span></label>
+                                    <input type="date" name="move_in_date" class="form-control" required
+                                           min="{{ today_date }}" id="bookingMoveInDate">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Rental Duration (months)</label>
+                                    <input type="number" name="duration_months" class="form-control"
+                                           min="1" max="60" placeholder="e.g. 6 months" id="bookingDuration">
+                                    <div class="form-text">Leave blank if not decided yet.</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Message to Owner</label>
+                                    <textarea name="message" class="form-control" rows="3"
+                                              placeholder="Introduce yourself and add any special requirements..." required></textarea>
+                                </div>
+                                <!-- Cost estimate -->
+                                <div class="card bg-light border-0 mb-3" id="costEstimateCard" style="display:none!important;">
+                                    <div class="card-body py-2 px-3">
+                                        <div class="d-flex justify-content-between small">
+                                            <span class="text-muted">Monthly Rent</span>
+                                            <strong>Rs. {{ property.price|floatformat:0 }}</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between small">
+                                            <span class="text-muted">Duration</span>
+                                            <strong id="estDuration">-</strong>
+                                        </div>
+                                        <hr class="my-1">
+                                        <div class="d-flex justify-content-between">
+                                            <span class="fw-semibold text-success">Estimated Total</span>
+                                            <strong class="text-success" id="estTotal">-</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-success w-100 fw-semibold">
+                                    <i class="bi bi-send me-2"></i>Submit Booking Request
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visit / Inquiry Modal -->
+            <div class="modal fade" id="requestModal" tabindex="-1" aria-labelledby="requestModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow-lg">
+                        <div class="modal-header border-0">
+                            <h5 class="modal-title fw-bold" id="requestModalLabel">
+                                <i class="bi bi-calendar-check me-2"></i>Submit a Request
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-4 pt-0">
+                            <form method="post" action="{% url 'properties:submit_request' property.pk %}">
+                                {% csrf_token %}
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Request Type</label>
+                                    <select name="request_type" class="form-select" id="requestTypeSelect" required>
+                                        <option value="visit">Schedule a Visit</option>
+                                        <option value="inquiry">General Inquiry</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Message <span class="text-danger">*</span></label>
+                                    <textarea name="message" class="form-control" rows="4"
+                                              placeholder="Describe your inquiry or preferred visit time..." required></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-send me-1"></i>Submit Request
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Owner Actions -->
+            {% if user == property.owner %}
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-gear me-2"></i>Manage Property</h5>
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'properties:edit' pk=property.pk %}" class="btn btn-outline-primary">
+                            <i class="bi bi-pencil-square me-2"></i>Edit Property
+                        </a>
+                        <a href="{% url 'properties:delete' pk=property.pk %}" class="btn btn-outline-danger">
+                            <i class="bi bi-trash me-2"></i>Delete Property
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Listing Info -->
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3"><i class="bi bi-clock-history me-2"></i>Listing Info</h6>
+                    <div class="d-flex justify-content-between mb-2">
+                        <small class="text-muted">Listed on</small>
+                        <small>{{ property.created_at|date:"M d, Y" }}</small>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <small class="text-muted">Last updated</small>
+                        <small>{{ property.updated_at|date:"M d, Y" }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Back to Listings -->
+    <div class="mt-4">
+        <a href="{% url 'properties:list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Back to Listings
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if property.has_location %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<!-- Google Maps API for Directions -->
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_key }}&libraries=places,geometry" async defer></script>
+<script>
+(function() {
+    var lat = {{ property.latitude }};
+    var lng = {{ property.longitude }};
+    var map = L.map('detailMap').setView([lat, lng], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        maxZoom: 19,
+    }).addTo(map);
+    L.marker([lat, lng]).addTo(map)
+        .bindPopup('<strong>{{ property.title|escapejs }}</strong><br>{{ property.address|escapejs }}')
+        .openPopup();
+})();
+
+// Directions Modal Functionality
+let directionsMap = null;
+let directionsService = null;
+let directionsRenderer = null;
+let userMarker = null;
+let propertyMarker = null;
+let userLocation = null;
+
+const propertyLat = {{ property.latitude }};
+const propertyLng = {{ property.longitude }};
+const propertyTitle = '{{ property.title|escapejs }}';
+const propertyAddress = '{{ property.address|escapejs }}{% if property.municipality %}, {{ property.municipality|escapejs }}{% endif %}, {{ property.district|escapejs }}';
+
+// Initialize directions map when modal is shown
+document.getElementById('locationDirectionsModal').addEventListener('shown.bs.modal', function() {
+    if (!directionsMap) {
+        initDirectionsMap();
+    }
+});
+
+function initDirectionsMap() {
+    // Initialize Google Map
+    directionsMap = new google.maps.Map(document.getElementById('directionsMap'), {
+        center: { lat: propertyLat, lng: propertyLng },
+        zoom: 14,
+        styles: [
+            { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] }
+        ]
+    });
+    
+    // Initialize directions services
+    directionsService = new google.maps.DirectionsService();
+    directionsRenderer = new google.maps.DirectionsRenderer({
+        map: directionsMap,
+        suppressMarkers: true,
+        polylineOptions: {
+            strokeColor: '#0d6efd',
+            strokeWeight: 5,
+            strokeOpacity: 0.8
+        }
+    });
+    
+    // Add property marker
+    propertyMarker = new google.maps.Marker({
+        position: { lat: propertyLat, lng: propertyLng },
+        map: directionsMap,
+        icon: {
+            path: 'M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24c0-6.6-5.4-12-12-12zm0 18c-3.3 0-6-2.7-6-6s2.7-6 6-6 6 2.7 6 6-2.7 6-6 6z',
+            fillColor: '#DC143C',
+            fillOpacity: 1,
+            strokeColor: '#fff',
+            strokeWeight: 2,
+            scale: 1.2,
+            anchor: new google.maps.Point(12, 36)
+        },
+        title: propertyTitle
+    });
+    
+    // Property info window
+    const propertyInfoWindow = new google.maps.InfoWindow({
+        content: `
+            <div style="padding: 10px; max-width: 250px;">
+                <strong style="color: #DC143C;">${propertyTitle}</strong><br>
+                <small style="color: #666;">${propertyAddress}</small>
+            </div>
+        `
+    });
+    
+    propertyMarker.addListener('click', function() {
+        propertyInfoWindow.open(directionsMap, propertyMarker);
+    });
+    
+    propertyInfoWindow.open(directionsMap, propertyMarker);
+}
+
+// Get user location button
+document.getElementById('getMyLocationBtn').addEventListener('click', function() {
+    const btn = this;
+    const statusEl = document.getElementById('locationStatus');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Detecting...';
+    statusEl.textContent = 'Requesting location access...';
+    
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                userLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+                
+                statusEl.innerHTML = '<i class="bi bi-check-circle text-success me-1"></i>Location detected!';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Location Detected';
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-outline-success');
+                
+                // Add user marker
+                if (userMarker) userMarker.setMap(null);
+                userMarker = new google.maps.Marker({
+                    position: userLocation,
+                    map: directionsMap,
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 12,
+                        fillColor: '#4285F4',
+                        fillOpacity: 1,
+                        strokeColor: '#fff',
+                        strokeWeight: 3
+                    },
+                    title: 'Your Location'
+                });
+                
+                // Calculate route
+                calculateAndDisplayRoute();
+            },
+            function(error) {
+                let errorMsg = 'Unable to get location';
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMsg = 'Location access denied. Please enable location permissions.';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMsg = 'Location information unavailable.';
+                        break;
+                    case error.TIMEOUT:
+                        errorMsg = 'Location request timed out.';
+                        break;
+                }
+                statusEl.innerHTML = '<i class="bi bi-exclamation-circle text-danger me-1"></i>' + errorMsg;
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-crosshairs me-2"></i>Try Again';
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 60000
+            }
+        );
+    } else {
+        statusEl.innerHTML = '<i class="bi bi-exclamation-circle text-danger me-1"></i>Geolocation not supported';
+        btn.disabled = false;
+    }
+});
+
+// Travel mode change
+document.querySelectorAll('input[name="travelMode"]').forEach(function(radio) {
+    radio.addEventListener('change', function() {
+        if (userLocation) {
+            calculateAndDisplayRoute();
+        }
+    });
+});
+
+function calculateAndDisplayRoute() {
+    const travelMode = document.querySelector('input[name="travelMode"]:checked').value;
+    
+    directionsService.route({
+        origin: userLocation,
+        destination: { lat: propertyLat, lng: propertyLng },
+        travelMode: google.maps.TravelMode[travelMode]
+    }, function(response, status) {
+        if (status === 'OK') {
+            directionsRenderer.setDirections(response);
+            
+            const route = response.routes[0].legs[0];
+            
+            // Update distance and duration
+            document.getElementById('totalDistance').textContent = route.distance.text;
+            document.getElementById('totalDuration').textContent = route.duration.text;
+            
+            // Show results, hide placeholder
+            document.getElementById('directionResults').classList.remove('d-none');
+            document.getElementById('noDirectionsYet').classList.add('d-none');
+            
+            // Populate direction steps
+            const stepsContainer = document.getElementById('directionSteps');
+            stepsContainer.innerHTML = route.steps.map(function(step, index) {
+                return `
+                    <div class="list-group-item py-2 px-3">
+                        <div class="d-flex align-items-start">
+                            <span class="badge bg-primary me-2">${index + 1}</span>
+                            <div>
+                                <div class="small">${step.instructions}</div>
+                                <small class="text-muted">${step.distance.text} - ${step.duration.text}</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Fit bounds to show both markers
+            const bounds = new google.maps.LatLngBounds();
+            bounds.extend(userLocation);
+            bounds.extend({ lat: propertyLat, lng: propertyLng });
+            directionsMap.fitBounds(bounds, { padding: 50 });
+        } else {
+            alert('Could not calculate directions: ' + status);
+        }
+    });
+}
+</script>
+{% endif %}
+
+{% if user.is_authenticated %}
+<script>
+// Favorite toggle
+(function() {
+    var btn = document.getElementById('favoriteBtn');
+    if (!btn) return;
+    btn.addEventListener('click', function() {
+        fetch('/favorites/toggle/' + btn.dataset.propertyId + '/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var icon = btn.querySelector('i');
+            var text = document.getElementById('favText');
+            if (data.status === 'added') {
+                btn.className = 'btn btn-danger mt-2 mt-md-0';
+                icon.className = 'bi bi-heart-fill me-1';
+                text.textContent = 'Saved';
+            } else {
+                btn.className = 'btn btn-outline-danger mt-2 mt-md-0';
+                icon.className = 'bi bi-heart me-1';
+                text.textContent = 'Save';
+            }
+        });
+    });
+})();
+</script>
+{% endif %}
+
+<script>
+// Add to comparison
+function addToComparison(propertyId) {
+    fetch(`/properties/compare/add/${propertyId}/`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const btn = document.getElementById('compareBtn');
+        const text = document.getElementById('compareText');
+        const icon = btn.querySelector('i');
+        
+        if (data.status === 'added') {
+            btn.classList.remove('btn-outline-primary');
+            btn.classList.add('btn-success');
+            icon.className = 'bi bi-check-lg me-1';
+            text.textContent = 'Added';
+            showToast('Added to comparison', 'success');
+        } else if (data.status === 'exists') {
+            showToast('Already in comparison', 'info');
+        } else if (data.status === 'error') {
+            showToast(data.message, 'warning');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        window.location.href = `/properties/compare/add/${propertyId}/`;
+    });
+}
+
+function showToast(message, type) {
+    const toast = document.createElement('div');
+    toast.className = `toast align-items-center text-white bg-${type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'info'} border-0 position-fixed`;
+    toast.style.cssText = 'bottom: 20px; right: 20px; z-index: 9999;';
+    toast.setAttribute('role', 'alert');
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="bi bi-${type === 'success' ? 'check-circle' : 'info-circle'} me-2"></i>
+                ${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    
+    const bsToast = new bootstrap.Toast(toast, { delay: 3000 });
+    bsToast.show();
+    
+    toast.addEventListener('hidden.bs.toast', () => {
+        toast.remove();
+    });
+}
+
+// ---- Booking modal: cost estimate ---
+(function() {
+    var monthlyRent = {{ property.price|floatformat:0 }};
+    var durationInput = document.getElementById('bookingDuration');
+    var estCard = document.getElementById('costEstimateCard');
+    var estDuration = document.getElementById('estDuration');
+    var estTotal = document.getElementById('estTotal');
+
+    function updateEstimate() {
+        var months = parseInt(durationInput.value, 10);
+        if (months > 0) {
+            estCard.style.removeProperty('display');
+            estDuration.textContent = months + ' month' + (months > 1 ? 's' : '');
+            estTotal.textContent = 'Rs. ' + (monthlyRent * months).toLocaleString();
+        } else {
+            estCard.style.setProperty('display', 'none', 'important');
+        }
+    }
+
+    if (durationInput) {
+        durationInput.addEventListener('input', updateEstimate);
+    }
+
+    // Pre-select type when opening visit/inquiry modal via buttons
+    document.querySelectorAll('[data-bs-target="#requestModal"]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var type = btn.getAttribute('data-type');
+            var sel = document.getElementById('requestTypeSelect');
+            if (sel && type) sel.value = type;
+        });
+    });
+})();
+
+// Track property view for AI recommendations
+(function() {
+    const propertyId = {{ property.pk }};
+    const viewed = JSON.parse(localStorage.getItem('viewed_properties') || '[]');
+    if (!viewed.includes(propertyId)) {
+        viewed.push(propertyId);
+        if (viewed.length > 50) viewed.shift();
+        localStorage.setItem('viewed_properties', JSON.stringify(viewed));
+    }
+    
+    // Track user preferences based on viewed property
+    const prefs = JSON.parse(localStorage.getItem('property_preferences') || '{}');
+    prefs.district = '{{ property.district }}';
+    {% if property.property_type %}
+    prefs.property_type = '{{ property.property_type }}';
+    {% endif %}
+    prefs.max_price = Math.max(prefs.max_price || 0, {{ property.price|floatformat:0 }});
+    localStorage.setItem('property_preferences', JSON.stringify(prefs));
+})();
+</script>
+{% endblock %}

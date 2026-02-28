@@ -1,0 +1,326 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Browse Properties{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Page Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
+        <div>
+            <h1 class="h2 fw-bold mb-1">
+                <i class="bi bi-houses me-2"></i>Browse Properties
+            </h1>
+            <p class="text-muted mb-0">{{ total_count }} propert{{ total_count|pluralize:"y,ies" }} found</p>
+        </div>
+        <div class="mt-2 mt-md-0">
+            <a href="{% url 'properties:map_explorer' %}" class="btn btn-outline-primary">
+                <i class="bi bi-map me-1"></i>Map View
+            </a>
+        </div>
+    </div>
+
+    <!-- Search and Filter Bar -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <form method="get" action="{% url 'properties:list' %}">
+                <div class="row g-3">
+                    <div class="col-md-4 col-lg-3">
+                        <label for="{{ form.keyword.id_for_label }}" class="form-label fw-semibold small text-muted">Keyword</label>
+                        {{ form.keyword }}
+                    </div>
+                    <div class="col-md-4 col-lg-2">
+                        <label for="{{ form.property_type.id_for_label }}" class="form-label fw-semibold small text-muted">Type</label>
+                        {{ form.property_type }}
+                    </div>
+                    <div class="col-md-4 col-lg-2">
+                        <label for="{{ form.district.id_for_label }}" class="form-label fw-semibold small text-muted">District</label>
+                        {{ form.district }}
+                    </div>
+                    <div class="col-md-4 col-lg-2">
+                        <label for="{{ form.municipality.id_for_label }}" class="form-label fw-semibold small text-muted">Municipality</label>
+                        {{ form.municipality }}
+                    </div>
+                    <div class="col-6 col-lg-1">
+                        <label for="{{ form.ward_number.id_for_label }}" class="form-label fw-semibold small text-muted">Ward</label>
+                        {{ form.ward_number }}
+                    </div>
+                    <div class="col-6 col-lg-2">
+                        <label for="{{ form.min_price.id_for_label }}" class="form-label fw-semibold small text-muted">Min Price</label>
+                        {{ form.min_price }}
+                    </div>
+                </div>
+                <div class="row g-3 mt-1">
+                    <div class="col-6 col-lg-2">
+                        <label for="{{ form.max_price.id_for_label }}" class="form-label fw-semibold small text-muted">Max Price</label>
+                        {{ form.max_price }}
+                    </div>
+                    <div class="col-6 col-lg-2">
+                        <label for="{{ form.num_rooms.id_for_label }}" class="form-label fw-semibold small text-muted">Min Rooms</label>
+                        {{ form.num_rooms }}
+                    </div>
+                    <div class="col-md-4 col-lg-2">
+                        <label for="{{ form.rental_purpose.id_for_label }}" class="form-label fw-semibold small text-muted">Purpose</label>
+                        {{ form.rental_purpose }}
+                    </div>
+                    <div class="col-md-4 col-lg-2">
+                        <label for="{{ form.sort.id_for_label }}" class="form-label fw-semibold small text-muted">Sort By</label>
+                        {{ form.sort }}
+                    </div>
+                    <div class="col-md-4 col-lg-4 d-flex align-items-end gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search me-1"></i>Search
+                        </button>
+                        <a href="{% url 'properties:list' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle me-1"></i>Clear
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Property Grid -->
+    {% if properties %}
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-4">
+        {% for property in properties %}
+        <div class="col">
+            <a href="{% url 'properties:detail' pk=property.pk %}" class="text-decoration-none">
+                <div class="card h-100 shadow-sm border-0 property-card">
+                    <!-- Property Image -->
+                    <div class="position-relative" style="height: 200px; overflow: hidden;">
+                        {% if property.primary_image %}
+                        <img src="{{ property.primary_image.image.url }}"
+                             class="card-img-top w-100 h-100"
+                             style="object-fit: cover;"
+                             alt="{{ property.title }}">
+                        {% else %}
+                        <div class="w-100 h-100 bg-light d-flex align-items-center justify-content-center">
+                            <div class="text-center text-muted">
+                                <i class="bi bi-image" style="font-size: 3rem;"></i>
+                                <p class="small mb-0 mt-1">No Image</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                        <!-- Property Type Badge -->
+                        <span class="position-absolute top-0 end-0 m-2 badge bg-primary">
+                            {{ property.get_property_type_display }}
+                        </span>
+                        {% if property.rental_purpose and property.rental_purpose != 'any' %}
+                        <span class="position-absolute top-0 start-0 m-2 badge bg-info text-dark">
+                            {{ property.get_rental_purpose_display }}
+                        </span>
+                        {% endif %}
+                        <!-- Compare Button -->
+                        <button type="button" 
+                                class="btn btn-sm btn-light position-absolute compare-btn"
+                                style="bottom: 10px; right: 10px; opacity: 0.9;"
+                                data-property-id="{{ property.pk }}"
+                                onclick="event.preventDefault(); addToComparison({{ property.pk }});"
+                                title="Add to comparison">
+                            <i class="bi bi-stack"></i>
+                        </button>
+                    </div>
+
+                    <!-- Card Body -->
+                    <div class="card-body">
+                        <h5 class="card-title text-dark fw-semibold mb-1 text-truncate">
+                            {{ property.title }}
+                        </h5>
+                        <p class="card-text text-muted small mb-2">
+                            <i class="bi bi-geo-alt me-1"></i>
+                            {% if property.municipality %}{{ property.municipality }}, {% endif %}{{ property.district }}
+                        </p>
+
+                        <!-- Star Rating -->
+                        {% if property.review_count > 0 %}
+                        <div class="mb-2">
+                            <span class="text-warning">
+                                {% for i in "12345" %}
+                                    {% if forloop.counter <= property.average_rating %}
+                                    <i class="bi bi-star-fill small"></i>
+                                    {% elif forloop.counter <= property.average_rating|add:"0.5" %}
+                                    <i class="bi bi-star-half small"></i>
+                                    {% else %}
+                                    <i class="bi bi-star small"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </span>
+                            <small class="text-muted ms-1">({{ property.review_count }})</small>
+                        </div>
+                        {% endif %}
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fw-bold text-success fs-6">
+                                Rs. {{ property.price|intcomma }}
+                                <small class="fw-normal text-muted">/mo</small>
+                            </span>
+                            {% if property.num_rooms %}
+                            <span class="text-muted small">
+                                <i class="bi bi-door-open me-1"></i>{{ property.num_rooms }} Room{{ property.num_rooms|pluralize }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Card Footer -->
+                    <div class="card-footer bg-transparent border-top-0 pt-0">
+                        <small class="text-muted">
+                            <i class="bi bi-geo me-1"></i>Ward {{ property.ward_number }}
+                            <span class="float-end">
+                                <i class="bi bi-eye me-1"></i>{{ property.views_count }}
+                            </span>
+                        </small>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if properties.has_other_pages %}
+    <nav aria-label="Property listing pages" class="mt-5">
+        <ul class="pagination justify-content-center">
+            {% if properties.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ properties.previous_page_number }}">
+                    <i class="bi bi-chevron-left"></i> Previous
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link"><i class="bi bi-chevron-left"></i> Previous</span>
+            </li>
+            {% endif %}
+
+            {% for num in properties.paginator.page_range %}
+                {% if properties.number == num %}
+                <li class="page-item active" aria-current="page">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+                {% elif num > properties.number|add:'-3' and num < properties.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if properties.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ properties.next_page_number }}">
+                    Next <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">Next <i class="bi bi-chevron-right"></i></span>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <!-- No Results -->
+    <div class="text-center py-5">
+        <div class="mb-4">
+            <i class="bi bi-search" style="font-size: 4rem; color: #dee2e6;"></i>
+        </div>
+        <h3 class="text-muted">No properties found</h3>
+        <p class="text-muted mb-4">Try adjusting your search filters or browse all available properties.</p>
+        <a href="{% url 'properties:list' %}" class="btn btn-primary">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>Clear All Filters
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .property-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .property-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15) !important;
+    }
+    .compare-btn {
+        transition: all 0.3s ease;
+    }
+    .compare-btn:hover {
+        background-color: var(--bs-primary) !important;
+        color: white !important;
+    }
+    .compare-btn.added {
+        background-color: var(--bs-success) !important;
+        color: white !important;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function addToComparison(propertyId) {
+    fetch(`/properties/compare/add/${propertyId}/`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const btn = document.querySelector(`[data-property-id="${propertyId}"]`);
+        if (data.status === 'added') {
+            btn.classList.add('added');
+            btn.innerHTML = '<i class="bi bi-check-lg"></i>';
+            showToast('Added to comparison', 'success');
+            updateCompareCount(data.count);
+        } else if (data.status === 'exists') {
+            showToast('Already in comparison', 'info');
+        } else if (data.status === 'error') {
+            showToast(data.message, 'warning');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        // Fall back to regular page navigation
+        window.location.href = `/properties/compare/add/${propertyId}/`;
+    });
+}
+
+function updateCompareCount(count) {
+    const badge = document.querySelector('.compare-nav-badge');
+    if (badge) {
+        badge.textContent = count;
+        badge.style.display = count > 0 ? 'inline' : 'none';
+    }
+}
+
+function showToast(message, type) {
+    // Create toast notification
+    const toast = document.createElement('div');
+    toast.className = `toast align-items-center text-white bg-${type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'info'} border-0 position-fixed`;
+    toast.style.cssText = 'bottom: 20px; right: 20px; z-index: 9999;';
+    toast.setAttribute('role', 'alert');
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="bi bi-${type === 'success' ? 'check-circle' : 'info-circle'} me-2"></i>
+                ${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    
+    const bsToast = new bootstrap.Toast(toast, { delay: 3000 });
+    bsToast.show();
+    
+    toast.addEventListener('hidden.bs.toast', () => {
+        toast.remove();
+    });
+}
+</script>
+{% endblock %}

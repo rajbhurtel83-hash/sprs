@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+
+{% block title %}Messages{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Page Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
+        <div>
+            <h1 class="h2 fw-bold mb-1">
+                <i class="bi bi-inbox me-2"></i>Messages
+            </h1>
+            <p class="text-muted mb-0">Your conversations with property owners and tenants</p>
+        </div>
+    </div>
+
+    <!-- Conversation List -->
+    {% if conversation_data %}
+    <div class="card shadow-sm border-0">
+        <div class="list-group list-group-flush">
+            {% for item in conversation_data %}
+            <a href="{% url 'messaging:conversation' item.conversation.pk %}"
+               class="list-group-item list-group-item-action py-3 px-4 {% if item.unread_count > 0 %}bg-primary bg-opacity-10 border-start border-primary border-4{% endif %}"
+               style="transition: all 0.2s ease;">
+                <div class="d-flex align-items-center">
+                    <!-- Avatar -->
+                    <div class="flex-shrink-0 me-3">
+                        {% if item.other_user.profile_picture %}
+                        <img src="{{ item.other_user.profile_picture.url }}"
+                             alt="{{ item.other_user.get_full_name|default:item.other_user.username }}"
+                             class="rounded-circle"
+                             width="50" height="50"
+                             style="object-fit: cover;">
+                        {% else %}
+                        <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center"
+                             style="width: 50px; height: 50px;">
+                            <i class="bi bi-person text-primary" style="font-size: 1.4rem;"></i>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Conversation Details -->
+                    <div class="flex-grow-1 min-width-0">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <h6 class="mb-0 {% if item.unread_count > 0 %}fw-bold{% else %}fw-semibold{% endif %} text-truncate me-2">
+                                {{ item.other_user.get_full_name|default:item.other_user.username }}
+                            </h6>
+                            <small class="text-muted flex-shrink-0">
+                                {% if item.last_message %}
+                                {{ item.last_message.created_at|timesince }} ago
+                                {% endif %}
+                            </small>
+                        </div>
+
+                        <p class="small text-muted mb-1 text-truncate">
+                            <i class="bi bi-house-door me-1"></i>{{ item.conversation.property.title|truncatewords:8 }}
+                        </p>
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <p class="mb-0 small text-truncate me-2 {% if item.unread_count > 0 %}fw-semibold text-dark{% else %}text-muted{% endif %}">
+                                {% if item.last_message %}
+                                    {% if item.last_message.sender == request.user %}
+                                        <span class="text-muted">You: </span>
+                                    {% endif %}
+                                    {{ item.last_message.content|truncatewords:12 }}
+                                {% else %}
+                                    No messages yet
+                                {% endif %}
+                            </p>
+
+                            {% if item.unread_count > 0 %}
+                            <span class="badge bg-primary rounded-pill flex-shrink-0">
+                                {{ item.unread_count }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Empty State -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <div class="empty-state py-5">
+                <i class="bi bi-chat-square-text"></i>
+                <h5>No conversations yet</h5>
+                <p class="text-muted">
+                    When you send or receive messages about properties, they will appear here.
+                </p>
+                <a href="{% url 'properties:list' %}" class="btn btn-primary">
+                    <i class="bi bi-search me-2"></i>Browse Properties
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .list-group-item:hover {
+        background-color: var(--color-gray-100) !important;
+    }
+    .list-group-item.border-start:hover {
+        background-color: rgba(37, 99, 235, 0.08) !important;
+    }
+    .min-width-0 {
+        min-width: 0;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+
+{% block title %}Tenant Dashboard{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Welcome Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
+        <div>
+            <h1 class="h2 fw-bold mb-1">
+                <i class="bi bi-house-heart me-2"></i>Welcome back, {{ user.get_full_name|default:user.username }}!
+            </h1>
+            <p class="text-muted mb-0">Here is an overview of your rental activity.</p>
+        </div>
+    </div>
+
+    <!-- Quick Action Cards -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <a href="{% url 'properties:list' %}" class="text-decoration-none">
+                <div class="card h-100 border-0 shadow-sm text-center p-4">
+                    <div class="card-body">
+                        <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px;">
+                            <i class="bi bi-search text-primary" style="font-size: 1.5rem;"></i>
+                        </div>
+                        <h5 class="card-title fw-bold text-dark">Browse Properties</h5>
+                        <p class="card-text text-muted small">Search and discover available rental properties in your area.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="{% url 'messaging:inbox' %}" class="text-decoration-none">
+                <div class="card h-100 border-0 shadow-sm text-center p-4">
+                    <div class="card-body">
+                        <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px;">
+                            <i class="bi bi-chat-dots text-success" style="font-size: 1.5rem;"></i>
+                        </div>
+                        <h5 class="card-title fw-bold text-dark">
+                            My Messages
+                            {% if unread_count %}
+                            <span class="badge bg-danger rounded-pill ms-1">{{ unread_count }}</span>
+                            {% endif %}
+                        </h5>
+                        <p class="card-text text-muted small">View and manage your conversations with property owners.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="{% url 'users:profile' %}" class="text-decoration-none">
+                <div class="card h-100 border-0 shadow-sm text-center p-4">
+                    <div class="card-body">
+                        <div class="bg-info bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px;">
+                            <i class="bi bi-person-circle text-info" style="font-size: 1.5rem;"></i>
+                        </div>
+                        <h5 class="card-title fw-bold text-dark">My Profile</h5>
+                        <p class="card-text text-muted small">Update your personal information and account settings.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Recent Conversations -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="bi bi-chat-left-text me-2"></i>Recent Conversations
+                        {% if unread_count %}
+                        <span class="badge bg-danger rounded-pill ms-1">{{ unread_count }}</span>
+                        {% endif %}
+                    </h5>
+                    <a href="{% url 'messaging:inbox' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body p-0">
+                    {% if conversations %}
+                    <div class="list-group list-group-flush">
+                        {% for item in conversations %}
+                        <a href="{% url 'messaging:conversation' item.conversation.pk %}"
+                           class="list-group-item list-group-item-action py-3 px-4 {% if item.unread_count > 0 %}bg-primary bg-opacity-10 border-start border-primary border-4{% endif %}">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0 me-3">
+                                    {% if item.other_user.profile_picture %}
+                                    <img src="{{ item.other_user.profile_picture.url }}"
+                                         alt="{{ item.other_user.get_full_name|default:item.other_user.username }}"
+                                         class="rounded-circle" width="42" height="42" style="object-fit: cover;">
+                                    {% else %}
+                                    <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center"
+                                         style="width: 42px; height: 42px;">
+                                        <i class="bi bi-person text-primary"></i>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-grow-1" style="min-width: 0;">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <h6 class="mb-0 text-truncate me-2 {% if item.unread_count > 0 %}fw-bold{% else %}fw-semibold{% endif %}">
+                                            {{ item.other_user.get_full_name|default:item.other_user.username }}
+                                        </h6>
+                                        {% if item.unread_count > 0 %}
+                                        <span class="badge bg-primary rounded-pill flex-shrink-0">{{ item.unread_count }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <p class="small text-muted mb-0 text-truncate">
+                                        <i class="bi bi-house-door me-1"></i>{{ item.conversation.property.title|truncatewords:6 }}
+                                    </p>
+                                    {% if item.last_message %}
+                                    <p class="small mb-0 mt-1 text-truncate {% if item.unread_count > 0 %}fw-semibold text-dark{% else %}text-muted{% endif %}">
+                                        {% if item.last_message.sender == request.user %}
+                                        <span class="text-muted">You: </span>
+                                        {% endif %}
+                                        {{ item.last_message.content|truncatewords:8 }}
+                                    </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="empty-state py-4">
+                        <i class="bi bi-chat-square-text"></i>
+                        <h6>No conversations yet</h6>
+                        <p class="text-muted small">Start a conversation by browsing properties.</p>
+                        <a href="{% url 'properties:list' %}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-search me-1"></i>Browse Properties
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Properties -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="bi bi-houses me-2"></i>Recent Properties
+                    </h5>
+                    <a href="{% url 'properties:list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    {% if recent_properties %}
+                    <div class="row row-cols-1 row-cols-sm-2 g-3">
+                        {% for property in recent_properties %}
+                        <div class="col">
+                            <a href="{% url 'properties:detail' pk=property.pk %}" class="text-decoration-none">
+                                <div class="card h-100 border shadow-sm" style="border-color: var(--color-gray-200) !important;">
+                                    <div class="position-relative" style="height: 140px; overflow: hidden;">
+                                        {% if property.primary_image %}
+                                        <img src="{{ property.primary_image.image.url }}"
+                                             class="w-100 h-100"
+                                             style="object-fit: cover;"
+                                             alt="{{ property.title }}">
+                                        {% else %}
+                                        <div class="w-100 h-100 bg-light d-flex align-items-center justify-content-center">
+                                            <i class="bi bi-image text-muted" style="font-size: 2rem;"></i>
+                                        </div>
+                                        {% endif %}
+                                        <span class="position-absolute top-0 end-0 m-2 badge bg-primary" style="font-size: .7rem;">
+                                            {{ property.get_property_type_display }}
+                                        </span>
+                                    </div>
+                                    <div class="card-body p-2">
+                                        <h6 class="card-title fw-semibold text-dark mb-1 text-truncate" style="font-size: .9rem;">
+                                            {{ property.title }}
+                                        </h6>
+                                        <p class="small text-muted mb-1 text-truncate">
+                                            <i class="bi bi-geo-alt me-1"></i>{{ property.address|truncatewords:5 }}
+                                        </p>
+                                        <span class="fw-bold text-success small">
+                                            Rs. {{ property.price|floatformat:0 }}<small class="fw-normal text-muted">/mo</small>
+                                        </span>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="empty-state py-4">
+                        <i class="bi bi-houses"></i>
+                        <h6>No properties available</h6>
+                        <p class="text-muted small">New properties will appear here as they are listed.</p>
+                        <a href="{% url 'properties:list' %}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-search me-1"></i>Browse Properties
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- My Bookings & Requests -->
+    {% if my_requests %}
+    <div class="row g-4 mt-0">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-calendar2-check me-2 text-success"></i>My Bookings & Requests</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for req in my_requests %}
+                        <a href="{% url 'properties:detail' req.property.pk %}" class="list-group-item list-group-item-action py-3 px-4">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        {% if req.request_type == 'booking' %}
+                                        <span class="badge bg-success"><i class="bi bi-calendar2-check me-1"></i>Booking</span>
+                                        {% elif req.request_type == 'visit' %}
+                                        <span class="badge bg-primary"><i class="bi bi-calendar-event me-1"></i>Visit</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary"><i class="bi bi-chat-square-text me-1"></i>Inquiry</span>
+                                        {% endif %}
+
+                                        {% if req.status == 'pending' %}
+                                        <span class="badge bg-warning text-dark">Pending</span>
+                                        {% elif req.status == 'approved' %}
+                                        <span class="badge bg-success">Approved</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Rejected</span>
+                                        {% endif %}
+                                    </div>
+                                    <h6 class="mb-0 fw-semibold">{{ req.property.title|truncatechars:60 }}</h6>
+                                    {% if req.request_type == 'booking' and req.move_in_date %}
+                                    <small class="text-muted"><i class="bi bi-calendar me-1"></i>Move-in: {{ req.move_in_date|date:"M d, Y" }}</small>
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted flex-shrink-0 ms-3">{{ req.created_at|date:"M d" }}</small>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

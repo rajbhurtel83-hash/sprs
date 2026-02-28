@@ -1,0 +1,1147 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Home - Find Your Perfect Rental{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/premium.css' %}">
+<style>
+/* Hero Background Images - High Quality Property Photos */
+.hero-slide-1 { 
+    background-image: linear-gradient(135deg, rgba(0, 56, 147, 0.7), rgba(220, 20, 60, 0.4)), 
+                      url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1920&q=80'); 
+}
+.hero-slide-2 { 
+    background-image: linear-gradient(135deg, rgba(0, 56, 147, 0.7), rgba(220, 20, 60, 0.4)), 
+                      url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1920&q=80'); 
+}
+.hero-slide-3 { 
+    background-image: linear-gradient(135deg, rgba(0, 56, 147, 0.7), rgba(220, 20, 60, 0.4)), 
+                      url('https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1920&q=80'); 
+}
+.hero-slide-4 { 
+    background-image: linear-gradient(135deg, rgba(0, 56, 147, 0.7), rgba(220, 20, 60, 0.4)), 
+                      url('https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1920&q=80'); 
+}
+.hero-slide-5 { 
+    background-image: linear-gradient(135deg, rgba(0, 56, 147, 0.7), rgba(220, 20, 60, 0.4)), 
+                      url('https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1920&q=80'); 
+}
+.hero-slide-6 { 
+    background-image: linear-gradient(135deg, rgba(0, 56, 147, 0.7), rgba(220, 20, 60, 0.4)), 
+                      url('https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=1920&q=80'); 
+}
+
+/* Slide Caption Styles */
+.slide-caption {
+    position: absolute;
+    bottom: 30px;
+    left: 30px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
+    padding: 12px 24px;
+    border-radius: 30px;
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.5s ease 0.3s;
+    z-index: 3;
+}
+
+.hero-slide.active .slide-caption {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.slide-caption i {
+    font-size: 1.2rem;
+    color: #fbbf24;
+}
+
+/* Slideshow Navigation Dots */
+.slideshow-dots {
+    position: absolute;
+    bottom: 30px;
+    right: 30px;
+    display: flex;
+    gap: 10px;
+    z-index: 10;
+}
+
+.slideshow-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.4);
+    border: 2px solid white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.slideshow-dot.active {
+    background: white;
+    transform: scale(1.2);
+}
+
+.slideshow-dot:hover {
+    background: rgba(255, 255, 255, 0.7);
+}
+
+/* Slide Progress Bar */
+.slide-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #dc143c, #fbbf24);
+    z-index: 10;
+    animation: slideProgress 5s linear infinite;
+}
+
+@keyframes slideProgress {
+    0% { width: 0%; }
+    100% { width: 100%; }
+}
+
+/* Luxury Property Gallery Slideshow Styles */
+.luxury-gallery-box {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.luxury-gallery-header {
+    padding: 20px 24px;
+    background: rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: white;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.luxury-gallery-header i {
+    color: #fbbf24;
+    font-size: 1.3rem;
+}
+
+.luxury-slideshow-container {
+    position: relative;
+    height: 320px;
+    overflow: hidden;
+}
+
+.luxury-slides {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.luxury-slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transform: scale(1.1);
+    transition: all 0.8s ease;
+}
+
+.luxury-slide.active {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.luxury-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.luxury-slide-caption {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 30px 24px 24px;
+    background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 60%, transparent 100%);
+    color: white;
+}
+
+.property-type-tag {
+    display: inline-block;
+    padding: 4px 12px;
+    background: linear-gradient(135deg, #dc143c, #ff6b6b);
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.luxury-slide-caption h6 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.luxury-slide-caption p {
+    font-size: 0.9rem;
+    opacity: 0.85;
+    margin: 0;
+}
+
+.luxury-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.luxury-nav:hover {
+    background: rgba(255, 255, 255, 0.4);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.luxury-nav-prev {
+    left: 15px;
+}
+
+.luxury-nav-next {
+    right: 15px;
+}
+
+.luxury-dots {
+    position: absolute;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+}
+
+.luxury-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.luxury-dot.active {
+    background: white;
+    transform: scale(1.2);
+}
+
+.luxury-dot:hover {
+    background: rgba(255, 255, 255, 0.7);
+}
+
+.luxury-cta-btn {
+    display: block;
+    padding: 18px 24px;
+    background: linear-gradient(135deg, #dc143c, #ff4757);
+    color: white;
+    text-align: center;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.luxury-cta-btn:hover {
+    background: linear-gradient(135deg, #b8102f, #dc143c);
+    color: white;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Animated Announcement Bar -->
+<div class="announcement-bar">
+    <div class="announcement-slider">
+        <span class="announcement-item"><i class="bi bi-house-heart"></i> Find Your Perfect Rental Home</span>
+        <span class="announcement-item"><i class="bi bi-robot"></i> Smart Property Search with AI</span>
+        <span class="announcement-item"><i class="bi bi-shield-check"></i> Discover Verified Rental Properties</span>
+        <span class="announcement-item"><i class="bi bi-lightning-charge"></i> Fast. Reliable. Trusted.</span>
+        <span class="announcement-item"><i class="bi bi-geo-alt"></i> Properties Across Nepal</span>
+        <span class="announcement-item"><i class="bi bi-chat-dots"></i> Direct Chat with Property Owners</span>
+        <!-- Duplicate for seamless loop -->
+        <span class="announcement-item"><i class="bi bi-house-heart"></i> Find Your Perfect Rental Home</span>
+        <span class="announcement-item"><i class="bi bi-robot"></i> Smart Property Search with AI</span>
+        <span class="announcement-item"><i class="bi bi-shield-check"></i> Discover Verified Rental Properties</span>
+        <span class="announcement-item"><i class="bi bi-lightning-charge"></i> Fast. Reliable. Trusted.</span>
+        <span class="announcement-item"><i class="bi bi-geo-alt"></i> Properties Across Nepal</span>
+        <span class="announcement-item"><i class="bi bi-chat-dots"></i> Direct Chat with Property Owners</span>
+    </div>
+</div>
+
+<!-- Premium Hero Slideshow Section -->
+<section class="hero-slideshow">
+    <div class="hero-slides">
+        <div class="hero-slide hero-slide-1 active">
+            <div class="slide-caption">
+                <i class="bi bi-building"></i>
+                <span>Luxury Villas & Bungalows</span>
+            </div>
+        </div>
+        <div class="hero-slide hero-slide-2">
+            <div class="slide-caption">
+                <i class="bi bi-house-door"></i>
+                <span>Modern Apartments</span>
+            </div>
+        </div>
+        <div class="hero-slide hero-slide-3">
+            <div class="slide-caption">
+                <i class="bi bi-houses"></i>
+                <span>Premium Family Homes</span>
+            </div>
+        </div>
+        <div class="hero-slide hero-slide-4">
+            <div class="slide-caption">
+                <i class="bi bi-shop-window"></i>
+                <span>Contemporary Residences</span>
+            </div>
+        </div>
+        <div class="hero-slide hero-slide-5">
+            <div class="slide-caption">
+                <i class="bi bi-tree"></i>
+                <span>Garden Estates</span>
+            </div>
+        </div>
+        <div class="hero-slide hero-slide-6">
+            <div class="slide-caption">
+                <i class="bi bi-water"></i>
+                <span>Poolside Properties</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Slideshow Navigation Dots -->
+    <div class="slideshow-dots">
+        <div class="slideshow-dot active" data-slide="0"></div>
+        <div class="slideshow-dot" data-slide="1"></div>
+        <div class="slideshow-dot" data-slide="2"></div>
+        <div class="slideshow-dot" data-slide="3"></div>
+        <div class="slideshow-dot" data-slide="4"></div>
+        <div class="slideshow-dot" data-slide="5"></div>
+    </div>
+    
+    <!-- Progress Bar -->
+    <div class="slide-progress"></div>
+    
+    <div class="container">
+        <div class="hero-content">
+            <div class="row align-items-center">
+                <div class="col-lg-7">
+                    <div class="hero-badge">
+                        <i class="bi bi-stars"></i>
+                        <span>Nepal's Most Trusted Rental Platform</span>
+                    </div>
+                    
+                    <h1 class="hero-title">
+                        Find Your <span class="highlight">Perfect Home</span> in Nepal
+                    </h1>
+                    
+                    <p class="hero-subtitle">
+                        From the bustling streets of Kathmandu to the serene valleys of Pokhara, 
+                        discover verified rental properties with AI-powered search and interactive maps.
+                    </p>
+                    
+                    <div class="hero-actions">
+                        <a href="{% url 'properties:list' %}" class="hero-btn hero-btn-primary">
+                            <i class="bi bi-search"></i>
+                            Browse Properties
+                        </a>
+                        <a href="{% url 'properties:map_explorer' %}" class="hero-btn hero-btn-secondary">
+                            <i class="bi bi-map"></i>
+                            Explore Map
+                        </a>
+                        {% if not user.is_authenticated %}
+                        <a href="{% url 'users:register' %}" class="hero-btn hero-btn-secondary">
+                            <i class="bi bi-person-plus"></i>
+                            Get Started Free
+                        </a>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="hero-stats">
+                        <div class="hero-stat">
+                            <span class="hero-stat-value" data-count="{{ property_count|default:500 }}">0</span>
+                            <span class="hero-stat-label">Properties Listed</span>
+                        </div>
+                        <div class="hero-stat">
+                            <span class="hero-stat-value" data-count="{{ owner_count|default:200 }}">0</span>
+                            <span class="hero-stat-label">Verified Owners</span>
+                        </div>
+                        <div class="hero-stat">
+                            <span class="hero-stat-value" data-count="{{ tenant_count|default:1000 }}">0</span>
+                            <span class="hero-stat-label">Happy Tenants</span>
+                        </div>
+                        <div class="hero-stat">
+                            <span class="hero-stat-value" data-count="{{ district_count|default:50 }}">0</span>
+                            <span class="hero-stat-label">Districts Covered</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-5">
+                    <!-- Luxury Property Gallery Slideshow -->
+                    <div class="luxury-gallery-box">
+                        <div class="luxury-gallery-header">
+                            <i class="bi bi-images"></i>
+                            <span>Discover Luxury Living</span>
+                        </div>
+                        <div class="luxury-slideshow-container">
+                            <div class="luxury-slides">
+                                <div class="luxury-slide active">
+                                    <img src="https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&q=80" alt="Luxury Bungalow">
+                                    <div class="luxury-slide-caption">
+                                        <span class="property-type-tag">Bungalow</span>
+                                        <h6>Modern Luxury Bungalow</h6>
+                                        <p>Spacious living with premium amenities</p>
+                                    </div>
+                                </div>
+                                <div class="luxury-slide">
+                                    <img src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80" alt="Premium Villa">
+                                    <div class="luxury-slide-caption">
+                                        <span class="property-type-tag">Villa</span>
+                                        <h6>Premium Family Villa</h6>
+                                        <p>Elegant design with garden views</p>
+                                    </div>
+                                </div>
+                                <div class="luxury-slide">
+                                    <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80" alt="Modern Apartment">
+                                    <div class="luxury-slide-caption">
+                                        <span class="property-type-tag">Apartment</span>
+                                        <h6>High-Rise Luxury Apartment</h6>
+                                        <p>City views with modern interiors</p>
+                                    </div>
+                                </div>
+                                <div class="luxury-slide">
+                                    <img src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&q=80" alt="Designer Home">
+                                    <div class="luxury-slide-caption">
+                                        <span class="property-type-tag">House</span>
+                                        <h6>Contemporary Designer Home</h6>
+                                        <p>Architectural excellence in every detail</p>
+                                    </div>
+                                </div>
+                                <div class="luxury-slide">
+                                    <img src="https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&q=80" alt="Poolside Property">
+                                    <div class="luxury-slide-caption">
+                                        <span class="property-type-tag">Estate</span>
+                                        <h6>Poolside Garden Estate</h6>
+                                        <p>Resort-style living at home</p>
+                                    </div>
+                                </div>
+                                <div class="luxury-slide">
+                                    <img src="https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&q=80" alt="Modern Residence">
+                                    <div class="luxury-slide-caption">
+                                        <span class="property-type-tag">Residence</span>
+                                        <h6>Smart Modern Residence</h6>
+                                        <p>Technology meets luxury living</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Navigation Arrows -->
+                            <button class="luxury-nav luxury-nav-prev" onclick="changeGallerySlide(-1)">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            <button class="luxury-nav luxury-nav-next" onclick="changeGallerySlide(1)">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                            
+                            <!-- Dots Indicator -->
+                            <div class="luxury-dots">
+                                <span class="luxury-dot active" onclick="goToGallerySlide(0)"></span>
+                                <span class="luxury-dot" onclick="goToGallerySlide(1)"></span>
+                                <span class="luxury-dot" onclick="goToGallerySlide(2)"></span>
+                                <span class="luxury-dot" onclick="goToGallerySlide(3)"></span>
+                                <span class="luxury-dot" onclick="goToGallerySlide(4)"></span>
+                                <span class="luxury-dot" onclick="goToGallerySlide(5)"></span>
+                            </div>
+                        </div>
+                        <a href="{% url 'properties:list' %}" class="luxury-cta-btn">
+                            <i class="bi bi-search me-2"></i>Explore All Properties
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="section section-light">
+    <div class="container">
+        <div class="section-header animate-on-scroll">
+            <h2 class="section-title">Why Choose SPRS?</h2>
+            <p class="section-subtitle">Experience the future of property rental with our AI-powered platform</p>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-3 animate-on-scroll" style="animation-delay: 0.1s;">
+                <div class="feature-card">
+                    <div class="feature-icon crimson">
+                        <i class="bi bi-robot"></i>
+                    </div>
+                    <h4>AI-Powered Search</h4>
+                    <p>Tell our AI chatbot what you need in natural language and get instant property recommendations.</p>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-3 animate-on-scroll" style="animation-delay: 0.2s;">
+                <div class="feature-card">
+                    <div class="feature-icon blue">
+                        <i class="bi bi-map"></i>
+                    </div>
+                    <h4>Interactive Maps</h4>
+                    <p>Explore properties on Google Maps with real-time directions, nearby facilities, and travel time estimates.</p>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-3 animate-on-scroll" style="animation-delay: 0.3s;">
+                <div class="feature-card">
+                    <div class="feature-icon green">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <h4>Verified Listings</h4>
+                    <p>All properties are verified by our team ensuring genuine listings with accurate information.</p>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-3 animate-on-scroll" style="animation-delay: 0.4s;">
+                <div class="feature-card">
+                    <div class="feature-icon gold">
+                        <i class="bi bi-chat-dots"></i>
+                    </div>
+                    <h4>Direct Messaging</h4>
+                    <p>Connect directly with property owners through our secure messaging system.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works Section -->
+<section class="section">
+    <div class="container">
+        <div class="section-header animate-on-scroll">
+            <h2 class="section-title">How It Works</h2>
+            <p class="section-subtitle">Three simple steps to find your perfect rental property</p>
+        </div>
+        
+        <div class="steps-container animate-on-scroll">
+            <div class="step-card">
+                <div class="step-number">1</div>
+                <h4>Create Account</h4>
+                <p>Register as a tenant or property owner in less than a minute with our streamlined signup process.</p>
+            </div>
+            
+            <div class="step-card">
+                <div class="step-number">2</div>
+                <h4>Search or List</h4>
+                <p>Browse properties using filters, AI chatbot, or interactive map. Owners can easily list with photos and details.</p>
+            </div>
+            
+            <div class="step-card">
+                <div class="step-number">3</div>
+                <h4>Connect & Move In</h4>
+                <p>Message owners, schedule visits, read reviews, and finalize your rental with confidence.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Featured Properties Section -->
+<section class="section section-light">
+    <div class="container">
+        <div class="section-header animate-on-scroll">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    <h2 class="section-title mb-2" style="text-align: left;">Featured Properties</h2>
+                    <p class="section-subtitle" style="margin: 0;">Handpicked listings across Nepal</p>
+                </div>
+                <a href="{% url 'properties:list' %}" class="hero-btn hero-btn-primary">
+                    View All <i class="bi bi-arrow-right ms-2"></i>
+                </a>
+            </div>
+        </div>
+        
+        {% if featured_properties %}
+        <div class="property-grid">
+            {% for property in featured_properties %}
+            <div class="premium-property-card animate-on-scroll">
+                <div class="card-image">
+                    {% if property.primary_image %}
+                    <img src="{{ property.primary_image.image.url }}" alt="{{ property.title }}">
+                    {% else %}
+                    <div class="d-flex align-items-center justify-content-center h-100" style="background: linear-gradient(135deg, #f5f5f5, #e0e0e0);">
+                        <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="card-badges">
+                        <span class="badge badge-type">{{ property.get_property_type_display }}</span>
+                        {% if property.is_featured %}
+                        <span class="badge badge-featured"><i class="bi bi-star-fill me-1"></i>Featured</span>
+                        {% endif %}
+                        {% if property.is_verified %}
+                        <span class="badge badge-verified"><i class="bi bi-patch-check-fill me-1"></i>Verified</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="card-actions">
+                        <button class="card-action-btn favorite {% if property.id in user_favorites %}active{% endif %}" 
+                                data-property-id="{{ property.id }}" title="Save to favorites">
+                            <i class="bi bi-heart{% if property.id in user_favorites %}-fill{% endif %}"></i>
+                        </button>
+                        <a href="{% url 'properties:detail' property.pk %}" target="_blank" class="card-action-btn" title="Quick view">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </div>
+                    
+                    <div class="card-price-tag">
+                        Rs. {{ property.price|intcomma }}<small>/mo</small>
+                    </div>
+                </div>
+                
+                <div class="card-content">
+                    <h3 class="card-title">
+                        <a href="{% url 'properties:detail' property.pk %}">{{ property.title }}</a>
+                    </h3>
+                    
+                    <div class="card-location">
+                        <i class="bi bi-geo-alt-fill"></i>
+                        {% if property.municipality %}{{ property.municipality }}, {% endif %}{{ property.district }}
+                    </div>
+                    
+                    <div class="card-features">
+                        {% if property.num_rooms %}
+                        <div class="card-feature">
+                            <i class="bi bi-door-open"></i>
+                            <span>{{ property.num_rooms }} Room{{ property.num_rooms|pluralize }}</span>
+                        </div>
+                        {% endif %}
+                        <div class="card-feature">
+                            <i class="bi bi-people"></i>
+                            <span>{{ property.get_rental_purpose_display }}</span>
+                        </div>
+                        {% if property.has_location %}
+                        <div class="card-feature">
+                            <i class="bi bi-pin-map"></i>
+                            <span>Map Available</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    {% if property.average_rating > 0 %}
+                    <div class="card-rating mb-3">
+                        <div class="stars">
+                            {% for i in "12345" %}
+                                {% if forloop.counter <= property.average_rating %}
+                                <i class="bi bi-star-fill"></i>
+                                {% else %}
+                                <i class="bi bi-star"></i>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <span class="rating-text">({{ property.review_count }} review{{ property.review_count|pluralize }})</span>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="card-footer">
+                        <div class="card-owner">
+                            {% if property.owner.profile_picture %}
+                            <img src="{{ property.owner.profile_picture.url }}" class="card-owner-avatar" alt="{{ property.owner.get_full_name }}">
+                            {% else %}
+                            <div class="card-owner-avatar d-flex align-items-center justify-content-center" style="background: var(--color-gray-200);">
+                                <i class="bi bi-person"></i>
+                            </div>
+                            {% endif %}
+                            <span class="card-owner-name">{{ property.owner.get_full_name|default:property.owner.username }}</span>
+                        </div>
+                        <a href="{% url 'properties:detail' property.pk %}" class="card-view-btn">
+                            View Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5 animate-on-scroll">
+            <i class="bi bi-houses text-muted" style="font-size: 4rem;"></i>
+            <p class="text-muted mt-3 mb-4">No properties listed yet. Be the first to list one!</p>
+            <a href="{% url 'properties:create' %}" class="hero-btn hero-btn-primary">
+                <i class="bi bi-plus-circle me-2"></i>List a Property
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Recent Properties Section -->
+<section class="section">
+    <div class="container">
+        <div class="section-header animate-on-scroll">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    <h2 class="section-title mb-2" style="text-align: left;">Recently Added</h2>
+                    <p class="section-subtitle" style="margin: 0;">Fresh listings from across Nepal</p>
+                </div>
+                <a href="{% url 'properties:map_explorer' %}" class="hero-btn hero-btn-secondary" style="color: var(--color-dark);">
+                    <i class="bi bi-map me-2"></i>View on Map
+                </a>
+            </div>
+        </div>
+        
+        {% if recent_properties %}
+        <div class="property-grid">
+            {% for property in recent_properties %}
+            <div class="premium-property-card animate-on-scroll">
+                <div class="card-image">
+                    {% if property.primary_image %}
+                    <img src="{{ property.primary_image.image.url }}" alt="{{ property.title }}">
+                    {% else %}
+                    <div class="d-flex align-items-center justify-content-center h-100" style="background: linear-gradient(135deg, #f5f5f5, #e0e0e0);">
+                        <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="card-badges">
+                        <span class="badge badge-type">{{ property.get_property_type_display }}</span>
+                    </div>
+                    
+                    <div class="card-actions">
+                        <button class="card-action-btn favorite" data-property-id="{{ property.id }}" title="Save to favorites">
+                            <i class="bi bi-heart"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="card-price-tag">
+                        Rs. {{ property.price|intcomma }}<small>/mo</small>
+                    </div>
+                </div>
+                
+                <div class="card-content">
+                    <h3 class="card-title">
+                        <a href="{% url 'properties:detail' property.pk %}">{{ property.title }}</a>
+                    </h3>
+                    
+                    <div class="card-location">
+                        <i class="bi bi-geo-alt-fill"></i>
+                        {% if property.municipality %}{{ property.municipality }}, {% endif %}{{ property.district }}
+                    </div>
+                    
+                    <div class="card-features">
+                        {% if property.num_rooms %}
+                        <div class="card-feature">
+                            <i class="bi bi-door-open"></i>
+                            <span>{{ property.num_rooms }} Room{{ property.num_rooms|pluralize }}</span>
+                        </div>
+                        {% endif %}
+                        <div class="card-feature">
+                            <i class="bi bi-calendar3"></i>
+                            <span>{{ property.created_at|timesince }} ago</span>
+                        </div>
+                    </div>
+                    
+                    <div class="card-footer">
+                        <div class="card-owner">
+                            <span class="card-owner-name">{{ property.owner.get_full_name|default:property.owner.username }}</span>
+                        </div>
+                        <a href="{% url 'properties:detail' property.pk %}" class="card-view-btn">
+                            View Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- AI Recommendations Section -->
+{% if user.is_authenticated %}
+{% include 'partials/ai_recommendations.html' %}
+{% endif %}
+
+<!-- Testimonials Section -->
+<section class="section section-dark">
+    <div class="container">
+        <div class="section-header animate-on-scroll">
+            <h2 class="section-title">What Our Users Say</h2>
+            <p class="section-subtitle">Real experiences from tenants and property owners</p>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-4 animate-on-scroll">
+                <div class="testimonial-card">
+                    <div class="testimonial-quote">
+                        "SPRS made finding my first apartment in Kathmandu so easy! The AI chatbot understood exactly what I needed and found perfect matches."
+                    </div>
+                    <div class="testimonial-author">
+                        <img src="{% static 'images/testimonials/user1.jpg' %}" class="testimonial-avatar" alt="User" onerror="this.src='https://ui-avatars.com/api/?name=Sita+Sharma'">
+                        <div>
+                            <div class="testimonial-name">Sita Sharma</div>
+                            <div class="testimonial-role">Tenant, Kathmandu</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4 animate-on-scroll" style="animation-delay: 0.1s;">
+                <div class="testimonial-card">
+                    <div class="testimonial-quote">
+                        "As a property owner, SPRS has helped me find reliable tenants quickly. The verification process gives me confidence in who I'm renting to."
+                    </div>
+                    <div class="testimonial-author">
+                        <img src="{% static 'images/testimonials/user2.jpg' %}" class="testimonial-avatar" alt="User" onerror="this.src='https://ui-avatars.com/api/?name=Ramesh+Thapa'">
+                        <div>
+                            <div class="testimonial-name">Ramesh Thapa</div>
+                            <div class="testimonial-role">Property Owner, Lalitpur</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4 animate-on-scroll" style="animation-delay: 0.2s;">
+                <div class="testimonial-card">
+                    <div class="testimonial-quote">
+                        "The map feature is incredible! I could see exactly where properties were and even got directions. Found a place walking distance from my college."
+                    </div>
+                    <div class="testimonial-author">
+                        <img src="{% static 'images/testimonials/user3.jpg' %}" class="testimonial-avatar" alt="User" onerror="this.src='https://ui-avatars.com/api/?name=Priya+Gurung'">
+                        <div>
+                            <div class="testimonial-name">Priya Gurung</div>
+                            <div class="testimonial-role">Student, Bhaktapur</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section">
+    <div class="container">
+        <div class="cta-content animate-on-scroll">
+            <h2 class="cta-title">Ready to Find Your Perfect Home?</h2>
+            <p class="cta-subtitle">
+                Join thousands of happy renters and property owners across Nepal. 
+                Start your search today or list your property for free.
+            </p>
+            <div class="hero-actions" style="justify-content: center;">
+                <a href="{% url 'properties:list' %}" class="hero-btn hero-btn-primary">
+                    <i class="bi bi-search"></i>
+                    Start Searching
+                </a>
+                {% if user.is_authenticated and user.is_owner %}
+                <a href="{% url 'properties:create' %}" class="hero-btn hero-btn-secondary">
+                    <i class="bi bi-plus-circle"></i>
+                    List Your Property
+                </a>
+                {% elif not user.is_authenticated %}
+                <a href="{% url 'users:register' %}" class="hero-btn hero-btn-secondary">
+                    <i class="bi bi-person-plus"></i>
+                    Create Free Account
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Dark Mode Toggle -->
+<button class="dark-mode-toggle" id="darkModeToggle" title="Toggle Dark Mode">
+    <i class="bi bi-moon-stars"></i>
+</button>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Hero Slideshow with 6 property slides
+    const slides = document.querySelectorAll('.hero-slide');
+    const dots = document.querySelectorAll('.slideshow-dot');
+    const progressBar = document.querySelector('.slide-progress');
+    let currentSlide = 0;
+    let slideInterval;
+    const slideDuration = 5000; // 5 seconds per slide
+    
+    function showSlide(index) {
+        // Update slides
+        slides.forEach((slide, i) => {
+            slide.classList.toggle('active', i === index);
+        });
+        // Update dots
+        dots.forEach((dot, i) => {
+            dot.classList.toggle('active', i === index);
+        });
+        currentSlide = index;
+        
+        // Reset progress bar animation
+        if (progressBar) {
+            progressBar.style.animation = 'none';
+            progressBar.offsetHeight; // Trigger reflow
+            progressBar.style.animation = `slideProgress ${slideDuration}ms linear`;
+        }
+    }
+    
+    function nextSlide() {
+        showSlide((currentSlide + 1) % slides.length);
+    }
+    
+    function startSlideshow() {
+        slideInterval = setInterval(nextSlide, slideDuration);
+    }
+    
+    // Dot click navigation
+    dots.forEach((dot, index) => {
+        dot.addEventListener('click', () => {
+            clearInterval(slideInterval);
+            showSlide(index);
+            startSlideshow();
+        });
+    });
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight') {
+            clearInterval(slideInterval);
+            showSlide((currentSlide + 1) % slides.length);
+            startSlideshow();
+        } else if (e.key === 'ArrowLeft') {
+            clearInterval(slideInterval);
+            showSlide((currentSlide - 1 + slides.length) % slides.length);
+            startSlideshow();
+        }
+    });
+    
+    // Touch/swipe support for mobile
+    let touchStartX = 0;
+    let touchEndX = 0;
+    const heroSection = document.querySelector('.hero-slideshow');
+    
+    if (heroSection) {
+        heroSection.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+        
+        heroSection.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, { passive: true });
+    }
+    
+    function handleSwipe() {
+        const swipeThreshold = 50;
+        const diff = touchStartX - touchEndX;
+        
+        if (Math.abs(diff) > swipeThreshold) {
+            clearInterval(slideInterval);
+            if (diff > 0) {
+                // Swipe left - next slide
+                showSlide((currentSlide + 1) % slides.length);
+            } else {
+                // Swipe right - previous slide
+                showSlide((currentSlide - 1 + slides.length) % slides.length);
+            }
+            startSlideshow();
+        }
+    }
+    
+    // Start slideshow if there are multiple slides
+    if (slides.length > 1) {
+        startSlideshow();
+    }
+    
+    // Counter Animation
+    function animateCounters() {
+        const counters = document.querySelectorAll('[data-count]');
+        counters.forEach(counter => {
+            const target = parseInt(counter.getAttribute('data-count'));
+            const duration = 2000;
+            const step = target / (duration / 16);
+            let current = 0;
+            
+            const updateCounter = () => {
+                current += step;
+                if (current < target) {
+                    counter.textContent = Math.floor(current).toLocaleString();
+                    requestAnimationFrame(updateCounter);
+                } else {
+                    counter.textContent = target.toLocaleString() + '+';
+                }
+            };
+            
+            updateCounter();
+        });
+    }
+    
+    // Scroll Animation
+    const animateOnScroll = document.querySelectorAll('.animate-on-scroll');
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('animated');
+                observer.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.1 });
+    
+    animateOnScroll.forEach(el => observer.observe(el));
+    
+    // Start counter animation when hero section is visible
+    const heroStats = document.querySelector('.hero-stats');
+    if (heroStats) {
+        const statsObserver = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+                animateCounters();
+                statsObserver.disconnect();
+            }
+        });
+        statsObserver.observe(heroStats);
+    }
+    
+    // Dark Mode Toggle
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    const html = document.documentElement;
+    
+    // Check for saved preference or system preference
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+        html.setAttribute('data-theme', 'dark');
+        darkModeToggle.innerHTML = '<i class="bi bi-sun"></i>';
+    }
+    
+    darkModeToggle.addEventListener('click', () => {
+        const isDark = html.getAttribute('data-theme') === 'dark';
+        html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+        localStorage.setItem('theme', isDark ? 'light' : 'dark');
+        darkModeToggle.innerHTML = isDark ? '<i class="bi bi-moon-stars"></i>' : '<i class="bi bi-sun"></i>';
+    });
+    
+    // Favorite Button Handler
+    const isAuthenticated = {{ user.is_authenticated|yesno:"true,false" }};
+    const csrfToken = '{{ csrf_token }}';
+    const loginUrl = "{% url 'users:login' %}";
+    
+    document.querySelectorAll('.card-action-btn.favorite').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const propertyId = this.getAttribute('data-property-id');
+            const icon = this.querySelector('i');
+            
+            if (isAuthenticated) {
+                fetch('/favorites/toggle/' + propertyId + '/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'added') {
+                        this.classList.add('active');
+                        icon.classList.remove('bi-heart');
+                        icon.classList.add('bi-heart-fill');
+                    } else {
+                        this.classList.remove('active');
+                        icon.classList.remove('bi-heart-fill');
+                        icon.classList.add('bi-heart');
+                    }
+                });
+            } else {
+                window.location.href = loginUrl + "?next=" + window.location.pathname;
+            }
+        });
+    });
+});
+
+// Luxury Property Gallery Slideshow
+let luxuryCurrentSlide = 0;
+const luxurySlides = document.querySelectorAll('.luxury-slide');
+const luxuryDots = document.querySelectorAll('.luxury-dot');
+let luxurySlideInterval;
+const luxurySlideDuration = 4000;
+
+function showLuxurySlide(index) {
+    if (luxurySlides.length === 0) return;
+    
+    // Wrap around
+    if (index >= luxurySlides.length) index = 0;
+    if (index < 0) index = luxurySlides.length - 1;
+    
+    luxurySlides.forEach((slide, i) => {
+        slide.classList.toggle('active', i === index);
+    });
+    
+    luxuryDots.forEach((dot, i) => {
+        dot.classList.toggle('active', i === index);
+    });
+    
+    luxuryCurrentSlide = index;
+}
+
+function changeGallerySlide(direction) {
+    clearInterval(luxurySlideInterval);
+    showLuxurySlide(luxuryCurrentSlide + direction);
+    startLuxurySlideshow();
+}
+
+function goToGallerySlide(index) {
+    clearInterval(luxurySlideInterval);
+    showLuxurySlide(index);
+    startLuxurySlideshow();
+}
+
+function startLuxurySlideshow() {
+    if (luxurySlides.length > 1) {
+        luxurySlideInterval = setInterval(() => {
+            showLuxurySlide(luxuryCurrentSlide + 1);
+        }, luxurySlideDuration);
+    }
+}
+
+// Initialize luxury slideshow
+if (luxurySlides.length > 0) {
+    startLuxurySlideshow();
+}
+</script>
+{% endblock %}

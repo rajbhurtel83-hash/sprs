@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environment
+venv/
+env/
+.venv/
+
+# Django
+*.log
+db.sqlite3
+db.sqlite3-journal
+
+# Media uploads
+media/properties/
+media/profiles/
+
+# Static files collected
+staticfiles/
+
+# Environment variables
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Distribution
+dist/
+build/
+*.egg-info/

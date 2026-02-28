@@ -1,0 +1,56 @@
+{% load static %}
+
+<!-- Chatbot Toggle Button -->
+<button class="chatbot-toggle" id="chatbotToggle" title="Chat with SPRS Assistant">
+    <i class="bi bi-chat-dots-fill"></i>
+</button>
+
+<!-- Chatbot Window -->
+<div class="chatbot-window" id="chatbotWindow">
+    <div class="chatbot-header">
+        <div class="d-flex align-items-center gap-2">
+            <div class="chatbot-avatar">
+                <i class="bi bi-robot"></i>
+            </div>
+            <div>
+                <h6 class="mb-0 text-white fw-bold">SPRS Assistant</h6>
+                <small class="text-white-50">Ask me about properties</small>
+            </div>
+        </div>
+        <button class="btn btn-sm text-white" id="chatbotClose">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+    
+    <div class="chatbot-messages" id="chatbotMessages">
+        <div class="chat-message bot">
+            <div class="chat-bubble">
+                Namaste! I'm the SPRS Assistant. I can help you find properties in Nepal. Try asking me:
+                <ul class="mb-0 mt-2 small">
+                    <li>"Find a room in Kathmandu under 15000"</li>
+                    <li>"Show flats in Bhaktapur ward 5"</li>
+                    <li>"I want a house for family near Lalitpur"</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="chatbot-input">
+        <form id="chatbotForm">
+            <div class="input-group">
+                <input type="text" class="form-control" id="chatbotInput" 
+                       placeholder="Type your message..." autocomplete="off">
+                <button class="btn btn-primary" type="submit" id="chatbotSend">
+                    <i class="bi bi-send-fill"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<link rel="stylesheet" href="{% static 'css/chatbot.css' %}">
+<script>
+    const CHATBOT_URL = '/chatbot/chat/';
+    const CSRF_TOKEN = '{{ csrf_token }}';
+</script>
+<script src="{% static 'js/chatbot.js' %}"></script>
