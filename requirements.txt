@@ -7,4 +7,5 @@ whitenoise>=6.5
 django-crispy-forms>=2.0
 crispy-bootstrap5>=0.7
 djangorestframework>=3.14
+dj-database-url>=2.1
 openai>=1.0
