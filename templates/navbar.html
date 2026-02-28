@@ -1,20 +1,20 @@
-{% load static %}
+﻿{% load static %}
 
 <!-- Premium Announcement Ticker -->
 <div class="sprs-ticker" id="sprsTicker">
     <div class="ticker-track">
-        <span>🏠 Discover Verified Rental Properties</span>
-        <span>⚡ Fast. Reliable. Trusted.</span>
-        <span>📍 Properties Across All 77 Districts of Nepal</span>
-        <span>💬 Direct Chat with Property Owners</span>
-        <span>🤖 AI-Powered Bilingual Search</span>
-        <span>⭐ Nepal's Most Trusted Rental Platform</span>
-        <span>🏠 Discover Verified Rental Properties</span>
-        <span>⚡ Fast. Reliable. Trusted.</span>
-        <span>📍 Properties Across All 77 Districts of Nepal</span>
-        <span>💬 Direct Chat with Property Owners</span>
-        <span>🤖 AI-Powered Bilingual Search</span>
-        <span>⭐ Nepal's Most Trusted Rental Platform</span>
+        <span>ðŸ  Discover Verified Rental Properties</span>
+        <span>âš¡ Fast. Reliable. Trusted.</span>
+        <span>ðŸ“ Properties Across All 77 Districts of Nepal</span>
+        <span>ðŸ’¬ Direct Chat with Property Owners</span>
+        <span>ðŸ¤– AI-Powered Bilingual Search</span>
+        <span>â­ Nepal's Most Trusted Rental Platform</span>
+        <span>ðŸ  Discover Verified Rental Properties</span>
+        <span>âš¡ Fast. Reliable. Trusted.</span>
+        <span>ðŸ“ Properties Across All 77 Districts of Nepal</span>
+        <span>ðŸ’¬ Direct Chat with Property Owners</span>
+        <span>ðŸ¤– AI-Powered Bilingual Search</span>
+        <span>â­ Nepal's Most Trusted Rental Platform</span>
     </div>
 </div>
 
@@ -157,171 +157,6 @@
                 <a href="{% url 'users:register' %}" class="mobile-link accent"><i class="bi bi-person-plus"></i> Get Started</a>
                 {% endif %}
             </div>
-        </div>
-    </div>
-</nav>
-
-    <div class="container">
-        <a class="navbar-brand fw-bold d-flex align-items-center" href="{% url 'home' %}">
-            <i class="bi bi-building me-2"></i>
-            <span>SPRS</span>
-        </a>
-
-        <button class="navbar-toggler" type="button"
-                data-bs-toggle="collapse" data-bs-target="#navbarMain"
-                aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-
-        <div class="collapse navbar-collapse" id="navbarMain">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'properties:list' %}">
-                        <i class="bi bi-houses me-1"></i>Properties
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'properties:map_explorer' %}">
-                        <i class="bi bi-map me-1"></i>Map Explorer
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link position-relative" href="{% url 'properties:compare' %}">
-                        <i class="bi bi-stack me-1"></i>Compare
-                        {% if request.session.compare_properties %}
-                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
-                            {{ request.session.compare_properties|length }}
-                        </span>
-                        {% endif %}
-                    </a>
-                </li>
-
-                {% if user.is_authenticated %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'dashboard:index' %}">
-                        <i class="bi bi-speedometer2 me-1"></i>Dashboard
-                    </a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link position-relative" href="{% url 'messaging:inbox' %}">
-                        <i class="bi bi-envelope me-1"></i>Messages
-                        {% if unread_messages_count %}
-                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                            {{ unread_messages_count }}
-                        </span>
-                        {% endif %}
-                    </a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link position-relative" href="{% url 'notifications:list' %}">
-                        <i class="bi bi-bell me-1"></i>
-                        {% if unread_notification_count %}
-                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark">
-                            {{ unread_notification_count }}
-                        </span>
-                        {% endif %}
-                    </a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'favorites:list' %}">
-                        <i class="bi bi-heart me-1"></i>Favorites
-                    </a>
-                </li>
-
-                {% if user.is_owner %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'properties:create' %}">
-                        <i class="bi bi-plus-circle me-1"></i>Add Property
-                    </a>
-                </li>
-                {% endif %}
-
-                {% if user.role == 'admin' or user.is_superuser %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'adminpanel:dashboard' %}">
-                        <i class="bi bi-gear me-1"></i>Admin Panel
-                    </a>
-                </li>
-                {% endif %}
-                {% endif %}
-            </ul>
-
-            <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
-                <!-- Dark Mode Toggle -->
-                <li class="nav-item me-2">
-                    <button class="btn btn-link nav-link" onclick="toggleDarkMode()" title="Toggle Dark Mode">
-                        <i class="bi bi-moon-fill theme-toggle-icon"></i>
-                    </button>
-                </li>
-                
-                {% if user.is_authenticated %}
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle d-flex align-items-center" href="#"
-                       id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        {% if user.profile_picture %}
-                        <img src="{{ user.profile_picture.url }}" alt="{{ user.username }}"
-                             class="rounded-circle me-2" width="28" height="28"
-                             style="object-fit: cover;">
-                        {% else %}
-                        <i class="bi bi-person-circle me-2" style="font-size: 1.25rem;"></i>
-                        {% endif %}
-                        {{ user.get_full_name|default:user.username }}
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="userDropdown">
-                        <li>
-                            <span class="dropdown-item-text text-muted small">
-                                Signed in as <strong>{{ user.username }}</strong>
-                                <br>
-                                <span class="badge bg-secondary">{{ user.get_role_display }}</span>
-                            </span>
-                        </li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li>
-                            <a class="dropdown-item" href="{% url 'users:profile' %}">
-                                <i class="bi bi-person me-2"></i>My Profile
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="{% url 'dashboard:index' %}">
-                                <i class="bi bi-speedometer2 me-2"></i>Dashboard
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="{% url 'favorites:list' %}">
-                                <i class="bi bi-heart me-2"></i>My Favorites
-                            </a>
-                        </li>
-                        {% if user.is_owner %}
-                        <li>
-                            <a class="dropdown-item" href="{% url 'properties:manage_requests' %}">
-                                <i class="bi bi-inbox me-2"></i>Property Requests
-                            </a>
-                        </li>
-                        {% endif %}
-                        <li><hr class="dropdown-divider"></li>
-                        <li>
-                            <a class="dropdown-item text-danger" href="{% url 'users:logout' %}">
-                                <i class="bi bi-box-arrow-right me-2"></i>Logout
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-                {% else %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'users:login' %}">
-                        <i class="bi bi-box-arrow-in-right me-1"></i>Login
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="btn btn-outline-light btn-sm ms-2 mt-1" href="{% url 'users:register' %}">
-                        <i class="bi bi-person-plus me-1"></i>Register
-                    </a>
-                </li>
-                {% endif %}
-            </ul>
         </div>
     </div>
 </nav>
