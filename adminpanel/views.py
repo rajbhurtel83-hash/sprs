@@ -65,10 +65,19 @@ def toggle_user_active(request, pk):
         if user == request.user:
             messages.error(request, 'You cannot deactivate your own account.')
         else:
-            user.is_active = not user.is_active
-            user.save()
-            status = 'activated' if user.is_active else 'deactivated'
-            messages.success(request, f'User {user.username} has been {status}.')
+            deactivation_reason = request.POST.get('deactivation_reason', '').strip()
+            if user.is_active:
+                if not deactivation_reason:
+                    messages.error(request, 'Please provide a reason before deactivating this user.')
+                else:
+                    user.is_active = False
+                    user.deactivation_reason = deactivation_reason
+                    user.save(update_fields=['is_active', 'deactivation_reason'])
+                    messages.success(request, f'User {user.username} has been deactivated.')
+            else:
+                user.is_active = True
+                user.save(update_fields=['is_active'])
+                messages.success(request, f'User {user.username} has been activated.')
 
     return redirect('adminpanel:manage_users')
 

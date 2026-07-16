@@ -1000,6 +1000,8 @@ const CSRF_TOKEN = '{{ csrf_token }}';
     let conversationHistory = [];
     let isProcessing        = false;
     let selectedLanguage    = localStorage.getItem('sprs_chat_lang') || 'auto';
+    const MAX_HISTORY_ITEMS = 16;
+    const MAX_MESSAGE_LENGTH = 1200;
 
     // ── Language toggle setup ─────────────────────────────────────────────────
     function applyLang(lang) {
@@ -1059,6 +1061,13 @@ const CSRF_TOKEN = '{{ csrf_token }}';
         e.preventDefault();
         const msg = chatInput.value.trim();
         if (!msg || isProcessing) return;
+        if (msg.length > MAX_MESSAGE_LENGTH) {
+            const tooLongMsg = selectedLanguage === 'nepali'
+                ? `सन्देश धेरै लामो छ। कृपया ${MAX_MESSAGE_LENGTH} अक्षरभित्र राख्नुहोस्।`
+                : `Message is too long. Please keep it under ${MAX_MESSAGE_LENGTH} characters.`;
+            addMessage(tooLongMsg, 'bot');
+            return;
+        }
         sendMessage(msg);
     });
 
@@ -1071,6 +1080,9 @@ const CSRF_TOKEN = '{{ csrf_token }}';
         chatInput.disabled = true;
         isProcessing = true;
         conversationHistory.push({ role: 'user', content: message });
+        if (conversationHistory.length > MAX_HISTORY_ITEMS) {
+            conversationHistory = conversationHistory.slice(-MAX_HISTORY_ITEMS);
+        }
 
         showTyping();
         hideSuggestions();
@@ -1095,6 +1107,9 @@ const CSRF_TOKEN = '{{ csrf_token }}';
             chatInput.focus();
 
             conversationHistory.push({ role: 'assistant', content: data.response });
+            if (conversationHistory.length > MAX_HISTORY_ITEMS) {
+                conversationHistory = conversationHistory.slice(-MAX_HISTORY_ITEMS);
+            }
 
             // Auto-switch UI language if server detected Nepali
             if (data.detected_language === 'nepali' && selectedLanguage === 'auto') {
@@ -1197,10 +1212,18 @@ const CSRF_TOKEN = '{{ csrf_token }}';
                                 <div class="chat-property-price">Rs. ${Number(p.price).toLocaleString()}<small style="font-weight:400;color:#888;">/mo</small></div>
                             </div>
                         </div>
-                        <div style="padding:0 10px 10px;">
-                            <a href="${p.url}" class="chat-property-view-btn" target="_blank">
+                        <div style="padding:0 10px 10px; display:flex; gap:6px;">
+                            <a href="${p.url}" class="chat-property-view-btn" target="_blank" style="flex:1;">
                                 <i class="bi bi-box-arrow-up-right me-1"></i>${viewLabel}
                             </a>
+                            ${p.has_location && p.latitude && p.longitude
+                                ? `<a href="/properties/map/?focus_lat=${p.latitude}&focus_lng=${p.longitude}&focus_id=${p.id}"
+                                      class="chat-property-view-btn" target="_blank"
+                                      style="flex:1; background:linear-gradient(135deg, #0E2456 0%, #1A3A7A 100%); border-color:rgba(80,130,220,0.25);">
+                                      <i class="bi bi-map me-1"></i>${isNp ? 'नक्सामा' : 'Map'}
+                                   </a>`
+                                : ''
+                            }
                         </div>
                     </div>`;
             });
@@ -1302,7 +1325,8 @@ const CSRF_TOKEN = '{{ csrf_token }}';
     }
 
     function formatMessage(text) {
-        return String(text)
+        const escaped = escapeHtml(String(text));
+        return escaped
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/\*(.*?)\*/g, '<em>$1</em>')
             .replace(/\n/g, '<br>')

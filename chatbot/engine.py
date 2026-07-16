@@ -1,5 +1,7 @@
 import json
+import logging
 import re
+
 from django.conf import settings
 
 try:
@@ -7,7 +9,52 @@ try:
 except ImportError:
     OpenAI = None
 
-from properties.models import Property, Amenity
+from properties.models import Property
+
+
+logger = logging.getLogger(__name__)
+
+_DEFAULT_OPENAI_MODELS = ('gpt-4.1-mini', 'gpt-4o-mini', 'gpt-3.5-turbo')
+
+
+def _openai_model_candidates():
+    configured_model = str(getattr(settings, 'OPENAI_CHAT_MODEL', '') or '').strip()
+    candidates = []
+
+    if configured_model:
+        candidates.append(configured_model)
+
+    for model_name in _DEFAULT_OPENAI_MODELS:
+        if model_name not in candidates:
+            candidates.append(model_name)
+
+    return candidates
+
+
+def _build_openai_client(api_key):
+    timeout_seconds = int(getattr(settings, 'OPENAI_TIMEOUT_SECONDS', 20))
+    max_retries = int(getattr(settings, 'OPENAI_MAX_RETRIES', 2))
+    return OpenAI(api_key=api_key, timeout=timeout_seconds, max_retries=max_retries)
+
+
+def _create_completion_with_fallback(client, messages, max_tokens, temperature):
+    last_error = None
+    for model_name in _openai_model_candidates():
+        try:
+            return client.chat.completions.create(
+                model=model_name,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=temperature,
+            )
+        except Exception as exc:
+            last_error = exc
+            logger.warning('OpenAI completion failed for model=%s: %s', model_name, exc)
+
+    if last_error:
+        raise last_error
+
+    raise RuntimeError('No OpenAI model candidates available')
 
 
 SYSTEM_PROMPT = """You are SPRS Assistant, an intelligent chatbot for the Smart Property Rental System in Nepal.
@@ -58,38 +105,55 @@ def get_chatbot_response(user_message, conversation_history=None):
     if not api_key or not OpenAI:
         return _fallback_response(user_message)
 
-    client = OpenAI(api_key=api_key)
+    client = _build_openai_client(api_key)
 
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
 
     if conversation_history:
         for msg in conversation_history[-10:]:
-            messages.append(msg)
+            if not isinstance(msg, dict):
+                continue
+            role = msg.get('role')
+            content = msg.get('content', '')
+            if role not in {'system', 'user', 'assistant'}:
+                continue
+            if not isinstance(content, str):
+                continue
+            clean_content = content.strip()[:1200]
+            if clean_content:
+                messages.append({'role': role, 'content': clean_content})
 
     messages.append({"role": "user", "content": user_message})
 
     try:
-        completion = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+        completion = _create_completion_with_fallback(
+            client=client,
             messages=messages,
             max_tokens=500,
             temperature=0.7,
         )
 
-        raw = completion.choices[0].message.content.strip()
+        raw = str((completion.choices[0].message.content or '')).strip()
+        if not raw:
+            return _fallback_response(user_message)
+
         return _parse_response(raw)
 
-    except Exception as e:
+    except Exception:
+        logger.exception('Legacy OpenAI chatbot call failed')
         return _fallback_response(user_message)
 
 
 def _parse_response(raw_text):
     """Parse the AI response to extract message and filters."""
+    def _safe_filters(value):
+        return value if isinstance(value, dict) else None
+
     try:
         data = json.loads(raw_text)
         return {
-            'response': data.get('response', raw_text),
-            'filters': data.get('filters'),
+            'response': str(data.get('response', raw_text)).strip()[:2400],
+            'filters': _safe_filters(data.get('filters')),
         }
     except json.JSONDecodeError:
         json_match = re.search(r'\{.*\}', raw_text, re.DOTALL)
@@ -97,17 +161,17 @@ def _parse_response(raw_text):
             try:
                 data = json.loads(json_match.group())
                 return {
-                    'response': data.get('response', raw_text),
-                    'filters': data.get('filters'),
+                    'response': str(data.get('response', raw_text)).strip()[:2400],
+                    'filters': _safe_filters(data.get('filters')),
                 }
             except json.JSONDecodeError:
-                pass
-        return {'response': raw_text, 'filters': None}
+                return {'response': str(raw_text).strip()[:2400], 'filters': None}
+        return {'response': str(raw_text).strip()[:2400], 'filters': None}
 
 
 def search_properties_with_filters(filters):
     """Search properties using extracted filters."""
-    if not filters:
+    if not filters or not isinstance(filters, dict):
         return []
 
     qs = Property.objects.filter(

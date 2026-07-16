@@ -4,10 +4,12 @@ Powered by OpenAI GPT for intelligent property search and recommendations
 """
 
 import json
+import logging
 import re
-from typing import Optional, Dict, List, Any
+from typing import Any, Dict, List, Optional
+
 from django.conf import settings
-from django.db.models import Q, Avg, Count
+from django.db.models import Avg, Count
 from django.urls import reverse
 
 try:
@@ -15,7 +17,56 @@ try:
 except ImportError:
     OpenAI = None
 
-from properties.models import Property, Amenity
+from properties.models import Property
+
+
+logger = logging.getLogger(__name__)
+
+_DEFAULT_OPENAI_MODELS = ('gpt-4.1-mini', 'gpt-4o-mini', 'gpt-3.5-turbo')
+
+
+def _openai_model_candidates():
+    configured_model = str(getattr(settings, 'OPENAI_CHAT_MODEL', '') or '').strip()
+    candidates = []
+
+    if configured_model:
+        candidates.append(configured_model)
+
+    for model_name in _DEFAULT_OPENAI_MODELS:
+        if model_name not in candidates:
+            candidates.append(model_name)
+
+    return candidates
+
+
+def _build_openai_client(api_key):
+    timeout_seconds = int(getattr(settings, 'OPENAI_TIMEOUT_SECONDS', 20))
+    max_retries = int(getattr(settings, 'OPENAI_MAX_RETRIES', 2))
+    return OpenAI(api_key=api_key, timeout=timeout_seconds, max_retries=max_retries)
+
+
+def _create_completion_with_fallback(client, messages, max_tokens, temperature, response_format=None):
+    last_error = None
+    for model_name in _openai_model_candidates():
+        try:
+            payload = {
+                'model': model_name,
+                'messages': messages,
+                'max_tokens': max_tokens,
+                'temperature': temperature,
+            }
+            if response_format:
+                payload['response_format'] = response_format
+
+            return client.chat.completions.create(**payload)
+        except Exception as exc:
+            last_error = exc
+            logger.warning('OpenAI completion failed for model=%s: %s', model_name, exc)
+
+    if last_error:
+        raise last_error
+
+    raise RuntimeError('No OpenAI model candidates available')
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -147,7 +198,7 @@ def get_advanced_chatbot_response(
         return _enhanced_fallback_response(user_message, user_location, language_preference)
 
     try:
-        client = OpenAI(api_key=api_key)
+        client = _build_openai_client(api_key)
 
         # Build messages
         messages = [{"role": "system", "content": SYSTEM_PROMPT}]
@@ -159,50 +210,104 @@ def get_advanced_chatbot_response(
             messages.append({"role": "system", "content": "IMPORTANT: The user has selected English language. Always respond in English."})
 
         # Add location context if available
-        if user_location:
-            dist = user_location.get('district', 'Unknown')
-            messages.append({"role": "system", "content": f"User's approximate location: {dist}"})
+        if user_location and isinstance(user_location, dict):
+            dist = str(user_location.get('district', 'Unknown')).strip()[:64]
+            if dist:
+                messages.append({"role": "system", "content": f"User's approximate location: {dist}"})
 
         # Add conversation history
         if conversation_history:
             for msg in conversation_history[-8:]:
-                messages.append(msg)
+                if not isinstance(msg, dict):
+                    continue
+                role = msg.get('role')
+                content = msg.get('content', '')
+                if role not in {'system', 'user', 'assistant'}:
+                    continue
+                if not isinstance(content, str):
+                    continue
+                clean_content = content.strip()[:1200]
+                if not clean_content:
+                    continue
+                messages.append({'role': role, 'content': clean_content})
 
         messages.append({"role": "user", "content": user_message})
 
         # Get completion
-        completion = client.chat.completions.create(
-            model="gpt-4-turbo-preview",
+        completion = _create_completion_with_fallback(
+            client=client,
             messages=messages,
             max_tokens=900,
             temperature=0.7,
-            response_format={"type": "json_object"}
+            response_format={"type": "json_object"},
         )
 
-        raw_response = completion.choices[0].message.content.strip()
+        raw_response = str((completion.choices[0].message.content or '')).strip()
+        if not raw_response:
+            return _enhanced_fallback_response(user_message, user_location, language_preference)
+
         return _parse_ai_response(raw_response)
 
-    except Exception as e:
-        print(f"OpenAI API Error: {e}")
+    except Exception:
+        logger.exception('OpenAI advanced chatbot call failed')
         return _enhanced_fallback_response(user_message, user_location, language_preference)
 
 
 def _parse_ai_response(raw_text: str) -> Dict[str, Any]:
     """Parse and validate AI response."""
+    allowed_intents = {
+        'search',
+        'question',
+        'greeting',
+        'help',
+        'comparison',
+        'recommendation',
+        'language_switch',
+        'thanks',
+        'error',
+    }
+
+    def _clean_text(value, default=''):
+        if value is None:
+            return default
+        return str(value).strip()
+
+    def _normalize_language(value):
+        language = _clean_text(value, default='english').lower()
+        return language if language in {'english', 'nepali'} else 'english'
+
+    def _normalize_intent(value, default='question'):
+        intent_value = _clean_text(value, default=default).lower()
+        return intent_value if intent_value in allowed_intents else default
+
+    def _normalize_suggestions(value):
+        if not isinstance(value, list):
+            return []
+
+        cleaned = []
+        for item in value:
+            text = _clean_text(item)
+            if not text:
+                continue
+            cleaned.append(text[:80])
+            if len(cleaned) >= 6:
+                break
+        return cleaned
+
     try:
         data = json.loads(raw_text)
 
+        filters = _validate_filters(data.get('filters'))
         result = {
-            'response': data.get('response', raw_text),
-            'filters': data.get('filters'),
-            'intent': data.get('intent', 'search' if data.get('filters') else 'question'),
-            'suggestions': data.get('suggestions', []),
-            'detected_language': data.get('detected_language', 'english'),
+            'response': _clean_text(data.get('response'), default=raw_text)[:2400],
+            'filters': filters,
+            'intent': _normalize_intent(
+                data.get('intent'),
+                default='search' if filters else 'question',
+            ),
+            'suggestions': _normalize_suggestions(data.get('suggestions', [])),
+            'detected_language': _normalize_language(data.get('detected_language', 'english')),
         }
-
-        # Validate filters
-        if result['filters']:
-            result['filters'] = _validate_filters(result['filters'])
 
         return result
 
@@ -212,17 +317,31 @@ def _parse_ai_response(raw_text: str) -> Dict[str, Any]:
         if json_match:
             try:
                 data = json.loads(json_match.group())
+
+                filters = _validate_filters(data.get('filters'))
                 return {
-                    'response': data.get('response', raw_text),
-                    'filters': _validate_filters(data.get('filters')),
-                    'intent': data.get('intent', 'question'),
-                    'suggestions': data.get('suggestions', []),
-                    'detected_language': data.get('detected_language', 'english'),
+                    'response': _clean_text(data.get('response'), default=raw_text)[:2400],
+                    'filters': filters,
+                    'intent': _normalize_intent(data.get('intent', 'question')),
+                    'suggestions': _normalize_suggestions(data.get('suggestions', [])),
+                    'detected_language': _normalize_language(data.get('detected_language', 'english')),
                 }
             except json.JSONDecodeError:
-                pass
+                return {
+                    'response': str(raw_text).strip()[:2400],
+                    'filters': None,
+                    'intent': 'question',
+                    'suggestions': [],
+                    'detected_language': 'english',
+                }
 
-        return {'response': raw_text, 'filters': None, 'intent': 'question', 'suggestions': [], 'detected_language': 'english'}
+        return {
+            'response': str(raw_text).strip()[:2400],
+            'filters': None,
+            'intent': 'question',
+            'suggestions': [],
+            'detected_language': 'english',
+        }
 
 
 def _validate_filters(filters: Optional[Dict]) -> Optional[Dict]:
@@ -243,21 +362,40 @@ def _validate_filters(filters: Optional[Dict]) -> Optional[Dict]:
         valid_filters['rental_purpose'] = filters['rental_purpose']
     
     # String fields
-    for field in ['district', 'municipality', 'ward_number']:
+    for field in ['district', 'municipality', 'ward_number', 'province']:
         if filters.get(field):
-            valid_filters[field] = str(filters[field]).strip()
+            value = str(filters[field]).strip()
+            if value:
+                valid_filters[field] = value[:80]
     
     # Numeric fields
     for field in ['max_price', 'min_price', 'num_rooms']:
         if filters.get(field):
             try:
-                valid_filters[field] = int(filters[field])
+                num_value = int(filters[field])
+                if field in {'max_price', 'min_price'} and 0 < num_value <= 100000000:
+                    valid_filters[field] = num_value
+                elif field == 'num_rooms' and 0 <= num_value <= 100:
+                    valid_filters[field] = num_value
             except (ValueError, TypeError):
-                pass
+                continue
     
     # Amenities list
     if filters.get('amenities') and isinstance(filters['amenities'], list):
-        valid_filters['amenities'] = [str(a).strip() for a in filters['amenities'] if a]
+        clean_amenities = []
+        for amenity in filters['amenities'][:10]:
+            text = str(amenity).strip()
+            if text:
+                clean_amenities.append(text[:40])
+        if clean_amenities:
+            valid_filters['amenities'] = clean_amenities
+
+    if valid_filters.get('min_price') and valid_filters.get('max_price'):
+        if valid_filters['min_price'] > valid_filters['max_price']:
+            valid_filters['min_price'], valid_filters['max_price'] = (
+                valid_filters['max_price'],
+                valid_filters['min_price'],
+            )
     
     return valid_filters if valid_filters else None
 
@@ -280,6 +418,9 @@ def search_properties_advanced(
     ).select_related('owner').prefetch_related('images', 'reviews', 'amenities')
     
     # Apply filters
+    if filters.get('province'):
+        qs = qs.filter(province__icontains=filters['province'])
+
     if filters.get('district'):
         qs = qs.filter(district__icontains=filters['district'])
     
@@ -329,8 +470,10 @@ def _format_properties_for_chat(properties) -> List[Dict]:
             'id': prop.id,
             'title': prop.title,
             'price': float(prop.price),
+            'province': prop.province,
             'district': prop.district,
             'municipality': prop.municipality,
+            'ward_number': prop.ward_number,
             'property_type': prop.get_property_type_display(),
             'num_rooms': prop.num_rooms,
             'rating': prop.average_rating,
@@ -367,12 +510,37 @@ def get_property_recommendations(
     
     # Apply preferences if available
     if user_preferences:
+        if user_preferences.get('province'):
+            qs = qs.filter(province__icontains=str(user_preferences['province']).strip())
         if user_preferences.get('district'):
-            qs = qs.filter(district__icontains=user_preferences['district'])
+            qs = qs.filter(district__icontains=str(user_preferences['district']).strip())
+        if user_preferences.get('municipality'):
+            qs = qs.filter(municipality__icontains=str(user_preferences['municipality']).strip())
         if user_preferences.get('max_price'):
-            qs = qs.filter(price__lte=user_preferences['max_price'] * 1.2)  # 20% flexibility
+            try:
+                max_price = int(user_preferences['max_price'])
+            except (TypeError, ValueError):
+                max_price = None
+            if max_price and max_price > 0:
+                qs = qs.filter(price__lte=max_price * 1.2)  # 20% flexibility
+        if user_preferences.get('min_price'):
+            try:
+                min_price = int(user_preferences['min_price'])
+            except (TypeError, ValueError):
+                min_price = None
+            if min_price and min_price > 0:
+                qs = qs.filter(price__gte=min_price * 0.8)
         if user_preferences.get('property_type'):
             qs = qs.filter(property_type=user_preferences['property_type'])
+        if user_preferences.get('rental_purpose'):
+            qs = qs.filter(rental_purpose=user_preferences['rental_purpose'])
+        if user_preferences.get('num_rooms'):
+            try:
+                num_rooms = int(user_preferences['num_rooms'])
+            except (TypeError, ValueError):
+                num_rooms = None
+            if num_rooms is not None and num_rooms >= 0:
+                qs = qs.filter(num_rooms__gte=num_rooms)
     
     # Order by popularity and rating
     qs = qs.annotate(
@@ -443,6 +611,22 @@ def _enhanced_fallback_response(
             intent = 'search'
             break
 
+    # ── Province map (English + Devanagari + Romanized) ───────────────────────
+    province_map = {
+        'koshi': 'Koshi', 'कोशी': 'Koshi', 'province 1': 'Koshi', 'प्रदेश १': 'Koshi',
+        'madhesh': 'Madhesh', 'मधेश': 'Madhesh', 'province 2': 'Madhesh', 'प्रदेश २': 'Madhesh', 'madhes': 'Madhesh',
+        'bagmati': 'Bagmati', 'बागमती': 'Bagmati', 'province 3': 'Bagmati', 'प्रदेश ३': 'Bagmati',
+        'gandaki': 'Gandaki', 'गण्डकी': 'Gandaki', 'province 4': 'Gandaki', 'प्रदेश ४': 'Gandaki',
+        'lumbini': 'Lumbini', 'लुम्बिनी': 'Lumbini', 'province 5': 'Lumbini', 'प्रदेश ५': 'Lumbini',
+        'karnali': 'Karnali', 'कर्णाली': 'Karnali', 'province 6': 'Karnali', 'प्रदेश ६': 'Karnali',
+        'sudurpashchim': 'Sudurpashchim', 'सुदूरपश्चिम': 'Sudurpashchim', 'province 7': 'Sudurpashchim', 'प्रदेश ७': 'Sudurpashchim', 'sudur paschim': 'Sudurpashchim',
+    }
+    for key, value in province_map.items():
+        if key in msg_lower or key in msg:
+            filters['province'] = value
+            intent = 'search'
+            break
+
     # ── Property type map ─────────────────────────────────────────────────────
     type_map = {
         'room': 'room', 'single room': 'room', 'kotha': 'room', 'कोठा': 'room', 'कोठाहरू': 'room',
@@ -492,7 +676,7 @@ def _enhanced_fallback_response(
                     intent = 'search'
                     break
                 except ValueError:
-                    pass
+                    continue
 
     # ── Purpose ───────────────────────────────────────────────────────────────
     purpose_map = {
@@ -513,7 +697,7 @@ def _enhanced_fallback_response(
             filters['num_rooms'] = int(room_match.group(1))
             intent = 'search'
         except ValueError:
-            pass
+            filters.pop('num_rooms', None)
 
     # ── Ward number ───────────────────────────────────────────────────────────
     ward_match = re.search(r'ward\s*(?:no\.?|number)?\s*(\d+)', msg_lower)
@@ -526,6 +710,9 @@ def _enhanced_fallback_response(
     # ── Build response ────────────────────────────────────────────────────────
     if filters:
         parts_en, parts_np = [], []
+        if 'province' in filters:
+            parts_en.append(f"in {filters['province']} Province")
+            parts_np.append(f"{filters['province']} प्रदेशमा")
         if 'district' in filters:
             parts_en.append(f"in {filters['district']}")
             parts_np.append(f"{filters['district']}मा")

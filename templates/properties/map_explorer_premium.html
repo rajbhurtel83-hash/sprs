@@ -1727,7 +1727,7 @@ function getUserLocation(callback) {
                         message = 'Location access denied. Please enable location permissions.';
                         break;
                     case error.POSITION_UNAVAILABLE:
-                        message = 'Location information unavailable.';
+                        message = 'Auto-detect unavailable. Try using location filters instead.';
                         break;
                     case error.TIMEOUT:
                         message = 'Location request timed out.';

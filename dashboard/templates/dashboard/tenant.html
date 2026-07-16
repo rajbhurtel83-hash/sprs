@@ -4,19 +4,158 @@
 
 {% block content %}
 <div class="container py-4">
-    <!-- Welcome Header -->
+    <!-- Welcome Header + Profile Summary -->
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
-        <div>
-            <h1 class="h2 fw-bold mb-1">
-                <i class="bi bi-house-heart me-2"></i>Welcome back, {{ user.get_full_name|default:user.username }}!
-            </h1>
-            <p class="text-muted mb-0">Here is an overview of your rental activity.</p>
+        <div class="d-flex align-items-center gap-3">
+            <div class="flex-shrink-0">
+                {% if user.profile_picture %}
+                <img src="{{ user.profile_picture.url }}" alt="{{ user.get_full_name }}"
+                     class="rounded-circle" width="64" height="64" style="object-fit: cover; border: 3px solid var(--color-border);">
+                {% else %}
+                <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center"
+                     style="width: 64px; height: 64px; border: 3px solid var(--color-border);">
+                    <i class="bi bi-person-fill text-primary" style="font-size: 1.75rem;"></i>
+                </div>
+                {% endif %}
+            </div>
+            <div>
+                <h1 class="h2 fw-bold mb-1">
+                    <i class="bi bi-house-heart me-2"></i>{{ user.get_full_name|default:user.username }}
+                </h1>
+                <p class="text-muted mb-0">
+                    <span class="badge bg-success bg-opacity-10 text-success me-2"><i class="bi bi-person-check me-1"></i>Tenant</span>
+                    <small><i class="bi bi-calendar3 me-1"></i>Member since {{ user.date_joined|date:"M Y" }}</small>
+                    {% if user.phone %}
+                    <small class="ms-2"><i class="bi bi-telephone me-1"></i>{{ user.phone }}</small>
+                    {% endif %}
+                    {% if user.email %}
+                    <small class="ms-2"><i class="bi bi-envelope me-1"></i>{{ user.email }}</small>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        <div class="mt-3 mt-md-0">
+            <a href="{% url 'users:profile' %}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-pencil me-1"></i>Edit Profile
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Cards Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+            <div class="stat-card stat-info">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon me-3">
+                        <i class="bi bi-envelope"></i>
+                    </div>
+                    <div>
+                        <div class="stat-label">Unread Messages</div>
+                        <div class="stat-value">{{ unread_count|default:"0" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="stat-card stat-danger">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon me-3">
+                        <i class="bi bi-heart"></i>
+                    </div>
+                    <div>
+                        <div class="stat-label">Favorites</div>
+                        <div class="stat-value">{{ favorites_count|default:"0" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="stat-card stat-warning">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon me-3">
+                        <i class="bi bi-bell"></i>
+                    </div>
+                    <div>
+                        <div class="stat-label">Notifications</div>
+                        <div class="stat-value">{{ unread_notifications|default:"0" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="stat-card stat-success">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon me-3">
+                        <i class="bi bi-send"></i>
+                    </div>
+                    <div>
+                        <div class="stat-label">My Requests</div>
+                        <div class="stat-value">{{ total_requests_count|default:"0" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Secondary Stats Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="stat-card stat-primary">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon me-3">
+                        <i class="bi bi-chat-dots"></i>
+                    </div>
+                    <div>
+                        <div class="stat-label">Conversations</div>
+                        <div class="stat-value">{{ total_conversations|default:"0" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card stat-success">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon me-3">
+                        <i class="bi bi-star"></i>
+                    </div>
+                    <div>
+                        <div class="stat-label">Reviews Given</div>
+                        <div class="stat-value">{{ total_reviews_given|default:"0" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card stat-warning">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon me-3">
+                        <i class="bi bi-hourglass-split"></i>
+                    </div>
+                    <div>
+                        <div class="stat-label">Pending Requests</div>
+                        <div class="stat-value">{{ pending_requests_count|default:"0" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card stat-info">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon me-3">
+                        <i class="bi bi-check2-circle"></i>
+                    </div>
+                    <div>
+                        <div class="stat-label">Approved</div>
+                        <div class="stat-value">{{ approved_requests_count|default:"0" }}</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Quick Action Cards -->
     <div class="row g-4 mb-5">
-        <div class="col-md-4">
+        <div class="col-md-3">
             <a href="{% url 'properties:list' %}" class="text-decoration-none">
                 <div class="card h-100 border-0 shadow-sm text-center p-4">
                     <div class="card-body">
@@ -24,12 +163,12 @@
                             <i class="bi bi-search text-primary" style="font-size: 1.5rem;"></i>
                         </div>
                         <h5 class="card-title fw-bold text-dark">Browse Properties</h5>
-                        <p class="card-text text-muted small">Search and discover available rental properties in your area.</p>
+                        <p class="card-text text-muted small">Search and discover available rental properties.</p>
                     </div>
                 </div>
             </a>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <a href="{% url 'messaging:inbox' %}" class="text-decoration-none">
                 <div class="card h-100 border-0 shadow-sm text-center p-4">
                     <div class="card-body">
@@ -42,12 +181,25 @@
                             <span class="badge bg-danger rounded-pill ms-1">{{ unread_count }}</span>
                             {% endif %}
                         </h5>
-                        <p class="card-text text-muted small">View and manage your conversations with property owners.</p>
+                        <p class="card-text text-muted small">Conversations with property owners.</p>
                     </div>
                 </div>
             </a>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
+            <a href="{% url 'properties:map_explorer' %}" class="text-decoration-none">
+                <div class="card h-100 border-0 shadow-sm text-center p-4">
+                    <div class="card-body">
+                        <div class="bg-warning bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px;">
+                            <i class="bi bi-map text-warning" style="font-size: 1.5rem;"></i>
+                        </div>
+                        <h5 class="card-title fw-bold text-dark">Map Explorer</h5>
+                        <p class="card-text text-muted small">Find properties on an interactive map.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
             <a href="{% url 'users:profile' %}" class="text-decoration-none">
                 <div class="card h-100 border-0 shadow-sm text-center p-4">
                     <div class="card-body">
@@ -55,7 +207,7 @@
                             <i class="bi bi-person-circle text-info" style="font-size: 1.5rem;"></i>
                         </div>
                         <h5 class="card-title fw-bold text-dark">My Profile</h5>
-                        <p class="card-text text-muted small">Update your personal information and account settings.</p>
+                        <p class="card-text text-muted small">Update your personal information.</p>
                     </div>
                 </div>
             </a>
@@ -148,7 +300,7 @@
                         {% for property in recent_properties %}
                         <div class="col">
                             <a href="{% url 'properties:detail' pk=property.pk %}" class="text-decoration-none">
-                                <div class="card h-100 border shadow-sm" style="border-color: var(--color-gray-200) !important;">
+                                <div class="card h-100 border shadow-sm" style="border-color: var(--color-border) !important;">
                                     <div class="position-relative" style="height: 140px; overflow: hidden;">
                                         {% if property.primary_image %}
                                         <img src="{{ property.primary_image.image.url }}"
@@ -171,9 +323,16 @@
                                         <p class="small text-muted mb-1 text-truncate">
                                             <i class="bi bi-geo-alt me-1"></i>{{ property.address|truncatewords:5 }}
                                         </p>
-                                        <span class="fw-bold text-success small">
-                                            Rs. {{ property.price|floatformat:0 }}<small class="fw-normal text-muted">/mo</small>
-                                        </span>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="fw-bold text-success small">
+                                                Rs. {{ property.price|floatformat:0 }}<small class="fw-normal text-muted">/mo</small>
+                                            </span>
+                                            {% if property.average_rating > 0 %}
+                                            <span class="small text-warning">
+                                                <i class="bi bi-star-fill me-1"></i>{{ property.average_rating }}
+                                            </span>
+                                            {% endif %}
+                                        </div>
                                     </div>
                                 </div>
                             </a>
@@ -195,15 +354,128 @@
         </div>
     </div>
 
-    <!-- My Bookings & Requests -->
-    {% if my_requests %}
+    <!-- Favorites & My Reviews Row -->
     <div class="row g-4 mt-0">
-        <div class="col-12">
+        <!-- Favorite Properties -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="bi bi-heart-fill me-2 text-danger"></i>My Favorites
+                        {% if favorites_count %}
+                        <span class="badge bg-danger rounded-pill ms-1">{{ favorites_count }}</span>
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if favorite_properties %}
+                    <div class="list-group list-group-flush">
+                        {% for fav in favorite_properties %}
+                        <a href="{% url 'properties:detail' pk=fav.property.pk %}" class="list-group-item list-group-item-action py-3 px-4">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0 me-3" style="width: 50px; height: 50px; border-radius: .5rem; overflow: hidden;">
+                                    {% if fav.property.primary_image %}
+                                    <img src="{{ fav.property.primary_image.image.url }}"
+                                         class="w-100 h-100" style="object-fit: cover;"
+                                         alt="{{ fav.property.title }}">
+                                    {% else %}
+                                    <div class="w-100 h-100 bg-light d-flex align-items-center justify-content-center">
+                                        <i class="bi bi-image text-muted"></i>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-grow-1" style="min-width: 0;">
+                                    <h6 class="mb-0 fw-semibold text-truncate" style="font-size: .85rem;">{{ fav.property.title }}</h6>
+                                    <small class="text-muted">
+                                        <i class="bi bi-geo-alt me-1"></i>{{ fav.property.district }}{% if fav.property.municipality %}, {{ fav.property.municipality }}{% endif %}
+                                    </small>
+                                    <div class="d-flex justify-content-between align-items-center mt-1">
+                                        <span class="fw-bold text-success small">Rs. {{ fav.property.price|floatformat:0 }}/mo</span>
+                                        <span class="badge bg-primary bg-opacity-10 text-primary" style="font-size: .7rem;">{{ fav.property.get_property_type_display }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="empty-state py-4">
+                        <i class="bi bi-heart"></i>
+                        <h6>No favorites yet</h6>
+                        <p class="text-muted small">Save properties you like to easily find them later.</p>
+                        <a href="{% url 'properties:list' %}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-search me-1"></i>Browse Properties
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- My Reviews -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="bi bi-star me-2 text-warning"></i>My Reviews
+                        {% if total_reviews_given %}
+                        <span class="badge bg-success rounded-pill ms-1">{{ total_reviews_given }}</span>
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if my_reviews %}
+                    <div class="list-group list-group-flush">
+                        {% for review in my_reviews %}
+                        <a href="{% url 'properties:detail' pk=review.property.pk %}" class="list-group-item list-group-item-action py-3 px-4">
+                            <div>
+                                <div class="d-flex align-items-center gap-1 mb-1">
+                                    {% for i in "12345" %}
+                                        {% if forloop.counter <= review.rating %}
+                                        <i class="bi bi-star-fill text-warning" style="font-size: .8rem;"></i>
+                                        {% else %}
+                                        <i class="bi bi-star text-muted" style="font-size: .8rem;"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                    <span class="small text-muted ms-1">({{ review.rating }}/5)</span>
+                                </div>
+                                <h6 class="mb-0 fw-semibold text-truncate" style="font-size: .85rem;">{{ review.property.title|truncatechars:45 }}</h6>
+                                <p class="small text-muted mb-0 text-truncate">{{ review.comment|truncatewords:12 }}</p>
+                                <small class="text-muted">{{ review.created_at|date:"M d, Y" }}</small>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="empty-state py-4">
+                        <i class="bi bi-star"></i>
+                        <h6>No reviews yet</h6>
+                        <p class="text-muted small">Share your experience by reviewing properties you've visited.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- My Bookings & Requests + Notifications -->
+    <div class="row g-4 mt-0">
+        <!-- My Bookings & Requests -->
+        <div class="col-lg-7">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <h5 class="mb-0 fw-bold"><i class="bi bi-calendar2-check me-2 text-success"></i>My Bookings & Requests</h5>
+                    <div class="d-flex gap-2">
+                        {% if pending_requests_count %}
+                        <span class="badge bg-warning text-dark rounded-pill">{{ pending_requests_count }} pending</span>
+                        {% endif %}
+                        {% if approved_requests_count %}
+                        <span class="badge bg-success rounded-pill">{{ approved_requests_count }} approved</span>
+                        {% endif %}
+                    </div>
                 </div>
                 <div class="card-body p-0">
+                    {% if my_requests %}
                     <div class="list-group list-group-flush">
                         {% for req in my_requests %}
                         <a href="{% url 'properties:detail' req.property.pk %}" class="list-group-item list-group-item-action py-3 px-4">
@@ -236,10 +508,174 @@
                         </a>
                         {% endfor %}
                     </div>
+                    {% else %}
+                    <div class="empty-state py-4">
+                        <i class="bi bi-calendar2-check"></i>
+                        <h6>No requests yet</h6>
+                        <p class="text-muted small">Your booking, visit, and inquiry requests will appear here.</p>
+                        <a href="{% url 'properties:list' %}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-search me-1"></i>Browse Properties
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Notifications -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="bi bi-bell me-2 text-info"></i>Notifications
+                        {% if unread_notifications %}
+                        <span class="badge bg-danger rounded-pill ms-1">{{ unread_notifications }}</span>
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_notifications %}
+                    <div class="list-group list-group-flush">
+                        {% for notif in recent_notifications %}
+                        <div class="list-group-item py-3 px-4 {% if not notif.is_read %}bg-primary bg-opacity-10 border-start border-primary border-4{% endif %}">
+                            <div class="d-flex align-items-start gap-2">
+                                <div class="flex-shrink-0 mt-1">
+                                    {% if notif.notification_type == 'message' %}
+                                    <i class="bi bi-chat-dots text-primary"></i>
+                                    {% elif notif.notification_type == 'request' %}
+                                    <i class="bi bi-inbox text-warning"></i>
+                                    {% elif notif.notification_type == 'approval' %}
+                                    <i class="bi bi-check-circle text-success"></i>
+                                    {% elif notif.notification_type == 'rejection' %}
+                                    <i class="bi bi-x-circle text-danger"></i>
+                                    {% elif notif.notification_type == 'listing' %}
+                                    <i class="bi bi-house-add text-primary"></i>
+                                    {% elif notif.notification_type == 'review' %}
+                                    <i class="bi bi-star text-warning"></i>
+                                    {% else %}
+                                    <i class="bi bi-bell text-info"></i>
+                                    {% endif %}
+                                </div>
+                                <div style="min-width: 0; flex: 1;">
+                                    <h6 class="mb-0 fw-semibold text-truncate" style="font-size: .85rem;">{{ notif.title|truncatechars:40 }}</h6>
+                                    <p class="small text-muted mb-0 text-truncate">{{ notif.message|truncatewords:10 }}</p>
+                                    <small class="text-muted">{{ notif.created_at|timesince }} ago</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="empty-state py-4">
+                        <i class="bi bi-bell"></i>
+                        <h6>No notifications yet</h6>
+                        <p class="text-muted small">Your notifications will appear here.</p>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
-    {% endif %}
+
+    <!-- Platform Overview -->
+    <div class="row g-4 mt-0">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-bar-chart-line me-2 text-primary"></i>Platform Overview</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Platform Stats Cards -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-6 col-md-3">
+                            <div class="text-center p-3 rounded-3 platform-stat-card platform-stat-blue">
+                                <div class="platform-stat-value">{{ platform_total_available|default:"0" }}</div>
+                                <div class="small fw-semibold platform-stat-label">Properties Listed</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="text-center p-3 rounded-3 platform-stat-card platform-stat-green">
+                                <div class="platform-stat-value">{{ platform_total_users|default:"0" }}</div>
+                                <div class="small fw-semibold platform-stat-label">Registered Users</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="text-center p-3 rounded-3 platform-stat-card platform-stat-orange">
+                                <div class="platform-stat-value">{{ platform_total_owners|default:"0" }}</div>
+                                <div class="small fw-semibold platform-stat-label">Property Owners</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="text-center p-3 rounded-3 platform-stat-card platform-stat-red">
+                                <div class="platform-stat-value">{{ platform_provinces|length }}</div>
+                                <div class="small fw-semibold platform-stat-label">Provinces Covered</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-4">
+                        <!-- Properties by Province -->
+                        <div class="col-md-6">
+                            <h6 class="fw-bold mb-3"><i class="bi bi-map me-1"></i> Properties by Province</h6>
+                            {% for prov in platform_provinces %}
+                            <div class="d-flex justify-content-between align-items-center py-2 {% if not forloop.last %}border-bottom{% endif %}">
+                                <span class="fw-semibold">{{ prov.province }}</span>
+                                <span class="badge bg-primary rounded-pill">{{ prov.count }}</span>
+                            </div>
+                            {% empty %}
+                            <p class="text-muted small">No province data available yet.</p>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Properties by Type + Top Districts -->
+                        <div class="col-md-6">
+                            <h6 class="fw-bold mb-3"><i class="bi bi-building me-1"></i> Properties by Type</h6>
+                            {% for t in platform_type_stats %}
+                            <div class="d-flex justify-content-between align-items-center py-2 {% if not forloop.last %}border-bottom{% endif %}">
+                                <span class="fw-semibold">{{ t.display }}</span>
+                                <span class="badge bg-success rounded-pill">{{ t.count }}</span>
+                            </div>
+                            {% empty %}
+                            <p class="text-muted small">No property type data available yet.</p>
+                            {% endfor %}
+
+                            <h6 class="fw-bold mb-3 mt-4"><i class="bi bi-geo-alt me-1"></i> Top Districts</h6>
+                            {% for d in platform_top_districts %}
+                            <div class="d-flex justify-content-between align-items-center py-2 {% if not forloop.last %}border-bottom{% endif %}">
+                                <span class="fw-semibold">{{ d.district }}</span>
+                                <span class="badge bg-info rounded-pill">{{ d.count }}</span>
+                            </div>
+                            {% empty %}
+                            <p class="text-muted small">No district data available yet.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    {% if platform_avg_price %}
+                    <div class="row g-3 mt-3">
+                        <div class="col-md-4">
+                            <div class="text-center p-2 bg-light rounded-3">
+                                <small class="text-muted d-block">Average Price</small>
+                                <span class="fw-bold text-success">Rs. {{ platform_avg_price|floatformat:0 }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center p-2 bg-light rounded-3">
+                                <small class="text-muted d-block">Lowest Price</small>
+                                <span class="fw-bold text-primary">Rs. {{ platform_min_price|floatformat:0 }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center p-2 bg-light rounded-3">
+                                <small class="text-muted d-block">Highest Price</small>
+                                <span class="fw-bold text-danger">Rs. {{ platform_max_price|floatformat:0 }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

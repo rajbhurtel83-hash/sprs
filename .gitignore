@@ -35,6 +35,10 @@ staticfiles/
 .DS_Store
 Thumbs.db
 desktop.ini
+nul
+
+# Claude temp files
+tmpclaude-*
 
 # Distribution
 dist/

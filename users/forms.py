@@ -9,7 +9,7 @@ class UserRegistrationForm(UserCreationForm):
     email = forms.EmailField(required=True)
     first_name = forms.CharField(max_length=50, required=True)
     last_name = forms.CharField(max_length=50, required=True)
-    phone = forms.CharField(max_length=20, required=False)
+    phone = forms.CharField(max_length=10, required=False)
     role = forms.ChoiceField(
         choices=[
             (User.Role.TENANT, 'Tenant (Looking for property)'),
@@ -53,6 +53,8 @@ class UserLoginForm(AuthenticationForm):
 class UserProfileForm(forms.ModelForm):
     """Form for editing user profile."""
 
+    phone = forms.CharField(max_length=10, required=False)
+
     class Meta:
         model = User
         fields = [
@@ -67,3 +69,15 @@ class UserProfileForm(forms.ModelForm):
             'address': forms.TextInput(attrs={'class': 'form-control'}),
             'profile_picture': forms.ClearableFileInput(attrs={'class': 'form-control'}),
         }
+
+    def clean_email(self):
+        email = (self.cleaned_data.get('email') or '').strip()
+        return email.lower() if email else email
+
+    def clean_phone(self):
+        phone = (self.cleaned_data.get('phone') or '').strip()
+        if not phone:
+            return phone
+        if not phone.isdigit() or len(phone) != 10:
+            raise forms.ValidationError('Phone number must be exactly 10 digits.')
+        return phone

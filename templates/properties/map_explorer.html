@@ -2,113 +2,1117 @@
 {% load static %}
 {% load humanize %}
 
-{% block title %}Map Explorer{% endblock %}
+{% block title %}Map Explorer - Find Properties{% endblock %}
 
 {% block extra_css %}
-<!-- Leaflet CSS (free, no API key) -->
+<!-- Leaflet CSS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
       integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-<!-- Leaflet MarkerCluster CSS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
-<link rel="stylesheet" href="{% static 'css/map.css' %}">
+<style>
+/* ============================================
+   AIRBNB-STYLE MAP EXPLORER
+   ============================================ */
+* { box-sizing: border-box; }
+
+.map-explorer-wrapper {
+    display: flex;
+    height: calc(100vh - 72px);
+    overflow: hidden;
+    background: #fff;
+}
+
+/* ── Left Panel: Property Cards ── */
+.map-properties-panel {
+    width: 55%;
+    min-width: 420px;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid #e0e0e0;
+    background: #f7f7f7;
+    position: relative;
+    z-index: 2;
+}
+
+.map-panel-header {
+    padding: 16px 24px;
+    background: #fff;
+    border-bottom: 1px solid #ebebeb;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+.map-panel-header h2 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #222;
+    margin: 0;
+}
+
+.map-panel-header .result-count {
+    font-size: 0.85rem;
+    color: #717171;
+}
+
+/* Filters bar */
+.map-filters-bar {
+    padding: 12px 24px;
+    background: #fff;
+    border-bottom: 1px solid #ebebeb;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+}
+
+.filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: 1px solid #b0b0b0;
+    border-radius: 24px;
+    background: #fff;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #222;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+.filter-chip:hover { border-color: #222; }
+.filter-chip.active { background: #222; color: #fff; border-color: #222; }
+.filter-chip i { font-size: 0.85rem; }
+.filter-chip select,
+.filter-chip input {
+    border: none;
+    background: transparent;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: inherit;
+    outline: none;
+    padding: 0;
+    cursor: pointer;
+    max-width: 110px;
+}
+.filter-chip select { appearance: none; -webkit-appearance: none; padding-right: 4px; }
+.filter-chip select option { color: #222; background: #fff; }
+
+/* Property cards grid */
+.map-cards-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    scroll-behavior: smooth;
+}
+
+.map-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+/* Individual property card - Airbnb style */
+.airbnb-card {
+    background: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: box-shadow 0.2s, transform 0.2s;
+    border: 1px solid transparent;
+}
+.airbnb-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.12); transform: translateY(-2px); }
+.airbnb-card.highlighted { border-color: #222; box-shadow: 0 6px 20px rgba(0,0,0,0.18); }
+
+.airbnb-card-img {
+    position: relative;
+    width: 100%;
+    padding-top: 66%;
+    overflow: hidden;
+}
+.airbnb-card-img img {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s;
+}
+.airbnb-card:hover .airbnb-card-img img { transform: scale(1.05); }
+
+.airbnb-card-img .no-img {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(135deg, #f0f0f0, #e0e0e0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #999;
+    font-size: 2rem;
+}
+
+.airbnb-card-badge {
+    position: absolute;
+    top: 10px; left: 10px;
+    background: #fff;
+    color: #222;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.airbnb-card-body { padding: 12px 14px 14px; }
+
+.airbnb-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 4px;
+}
+.airbnb-card-location {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #222;
+    line-height: 1.3;
+}
+.airbnb-card-rating {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #222;
+    flex-shrink: 0;
+}
+.airbnb-card-rating i { color: #222; font-size: 0.7rem; }
+
+.airbnb-card-title {
+    font-size: 0.78rem;
+    color: #717171;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.airbnb-card-details {
+    font-size: 0.78rem;
+    color: #717171;
+    margin-bottom: 6px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.airbnb-card-details span { display: flex; align-items: center; gap: 3px; }
+.airbnb-card-details i { font-size: 0.72rem; }
+
+.airbnb-card-price {
+    font-size: 0.9rem;
+    color: #222;
+}
+.airbnb-card-price strong { font-weight: 700; }
+.airbnb-card-price span { color: #717171; font-weight: 400; }
+
+/* ── Right Panel: Map ── */
+.map-container-panel {
+    flex: 1;
+    position: relative;
+    min-width: 0;
+}
+
+#mapContainer {
+    width: 100%;
+    height: 100%;
+}
+
+/* Price markers on map - Airbnb style */
+.price-marker {
+    background: #fff;
+    border: 2px solid #fff;
+    border-radius: 28px;
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #222;
+    white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+    line-height: 1.3;
+    z-index: 500;
+}
+.price-marker:hover,
+.price-marker.active {
+    background: #222;
+    color: #fff;
+    border-color: #222;
+    transform: scale(1.08);
+    z-index: 600 !important;
+}
+
+/* Map popup - Airbnb style */
+.map-popup-card {
+    width: 280px;
+    border-radius: 12px;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+.map-popup-card img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+}
+.map-popup-card .popup-no-img {
+    width: 100%;
+    height: 160px;
+    background: linear-gradient(135deg, #f0f0f0, #e0e0e0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #aaa;
+    font-size: 2rem;
+}
+.map-popup-body {
+    padding: 12px 14px;
+}
+.map-popup-body h4 {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #222;
+    margin: 0 0 4px;
+    line-height: 1.3;
+}
+.map-popup-body .popup-location {
+    font-size: 0.78rem;
+    color: #717171;
+    margin-bottom: 6px;
+}
+.map-popup-body .popup-desc {
+    font-size: 0.75rem;
+    color: #717171;
+    margin-bottom: 8px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.map-popup-body .popup-price {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #222;
+    margin-bottom: 8px;
+}
+.map-popup-body .popup-price span { color: #717171; font-weight: 400; }
+.map-popup-body .popup-amenities {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 10px;
+}
+.map-popup-body .popup-amenity {
+    background: #f7f7f7;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    color: #555;
+}
+.popup-view-btn {
+    display: block;
+    width: 100%;
+    padding: 8px;
+    background: #222;
+    color: #fff;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+.popup-view-btn:hover { background: #000; color: #fff; }
+
+/* Leaflet popup overrides */
+.leaflet-popup-content-wrapper {
+    padding: 0 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15) !important;
+    overflow: hidden;
+}
+.leaflet-popup-content {
+    margin: 0 !important;
+    width: 280px !important;
+}
+.leaflet-popup-tip { display: none; }
+
+.leaflet-container .leaflet-control-zoom {
+    border: none !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
+    border-radius: 8px !important;
+    overflow: hidden;
+}
+.leaflet-container .leaflet-control-zoom a {
+    width: 36px !important;
+    height: 36px !important;
+    line-height: 36px !important;
+    font-size: 18px !important;
+    border-color: #ebebeb !important;
+}
+
+/* Map loading overlay */
+.map-loading {
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    transition: opacity 0.3s;
+}
+.map-loading.hidden { opacity: 0; pointer-events: none; }
+.map-loading-spinner {
+    width: 40px; height: 40px;
+    border: 3px solid #e0e0e0;
+    border-top-color: #222;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse-focus {
+    0%, 100% { transform: scale(1); box-shadow: 0 2px 12px rgba(220,20,60,0.6); }
+    50% { transform: scale(1.1); box-shadow: 0 4px 20px rgba(220,20,60,0.9); }
+}
+
+/* Empty state */
+.map-empty-state {
+    padding: 60px 40px;
+    text-align: center;
+    color: #717171;
+}
+.map-empty-state i { font-size: 3rem; color: #ddd; margin-bottom: 16px; display: block; }
+.map-empty-state h3 { font-size: 1.1rem; font-weight: 700; color: #222; margin-bottom: 8px; }
+.map-empty-state p { font-size: 0.85rem; max-width: 300px; margin: 0 auto; }
+
+/* Show Map button on mobile */
+.show-map-toggle {
+    display: none;
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 999;
+    background: #222;
+    color: #fff;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 24px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    cursor: pointer;
+    gap: 8px;
+    align-items: center;
+}
+.show-map-toggle i { font-size: 1rem; }
+
+/* Responsive */
+@media (max-width: 768px) {
+    .map-explorer-wrapper { flex-direction: column; }
+    .map-properties-panel {
+        width: 100%;
+        min-width: unset;
+        height: 100%;
+        border-right: none;
+    }
+    .map-properties-panel.map-view-active { display: none; }
+    .map-container-panel { display: none; height: 100%; }
+    .map-container-panel.map-view-active { display: block; }
+    .show-map-toggle { display: flex; }
+}
+
+/* MarkerCluster override for clean look */
+.marker-cluster-small { background-color: rgba(34,34,34,0.2) !important; }
+.marker-cluster-small div { background-color: #222 !important; color: #fff !important; font-weight: 700; font-size: 0.75rem; }
+.marker-cluster-medium { background-color: rgba(34,34,34,0.3) !important; }
+.marker-cluster-medium div { background-color: #222 !important; color: #fff !important; font-weight: 700; }
+.marker-cluster-large { background-color: rgba(34,34,34,0.4) !important; }
+.marker-cluster-large div { background-color: #222 !important; color: #fff !important; font-weight: 700; }
+
+/* Dark mode support */
+[data-theme="dark"] .map-explorer-wrapper { background: var(--color-bg, #0A0F1E); }
+[data-theme="dark"] .map-properties-panel {
+    background: var(--color-bg, #0A0F1E);
+    border-right-color: var(--color-border, rgba(255,255,255,.08));
+}
+[data-theme="dark"] .map-panel-header {
+    background: var(--color-surface, #111827);
+    border-bottom-color: var(--color-border, rgba(255,255,255,.08));
+}
+[data-theme="dark"] .map-panel-header h2 { color: #F1F5F9; }
+[data-theme="dark"] .map-panel-header .result-count { color: #94A3B8; }
+[data-theme="dark"] .map-panel-header a { color: #94A3B8; }
+[data-theme="dark"] .map-filters-bar {
+    background: var(--color-surface, #111827);
+    border-bottom-color: var(--color-border, rgba(255,255,255,.08));
+}
+[data-theme="dark"] .filter-chip {
+    background: var(--color-surface, #111827);
+    border-color: rgba(255,255,255,.15);
+    color: #F1F5F9;
+}
+[data-theme="dark"] .filter-chip:hover { border-color: rgba(255,255,255,.4); }
+[data-theme="dark"] .filter-chip.active { background: #F1F5F9; color: #0A0F1E; border-color: #F1F5F9; }
+[data-theme="dark"] .filter-chip select,
+[data-theme="dark"] .filter-chip input { color: inherit; }
+[data-theme="dark"] .filter-chip select option { color: #222; background: #fff; }
+[data-theme="dark"] .map-cards-container { background: var(--color-bg, #0A0F1E); }
+[data-theme="dark"] .airbnb-card {
+    background: var(--color-surface, #111827);
+    border-color: var(--color-border, rgba(255,255,255,.08));
+}
+[data-theme="dark"] .airbnb-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.4); }
+[data-theme="dark"] .airbnb-card.highlighted { border-color: var(--gold-400, #F59E0B); }
+[data-theme="dark"] .airbnb-card-img .no-img { background: linear-gradient(135deg, #1e293b, #0f172a); color: #475569; }
+[data-theme="dark"] .airbnb-card-badge { background: var(--color-surface, #111827); color: #F1F5F9; }
+[data-theme="dark"] .airbnb-card-location { color: #F1F5F9; }
+[data-theme="dark"] .airbnb-card-rating { color: #F1F5F9; }
+[data-theme="dark"] .airbnb-card-rating i { color: var(--gold-400, #F59E0B); }
+[data-theme="dark"] .airbnb-card-title { color: #94A3B8; }
+[data-theme="dark"] .airbnb-card-details { color: #94A3B8; }
+[data-theme="dark"] .airbnb-card-price { color: #F1F5F9; }
+[data-theme="dark"] .airbnb-card-price span { color: #94A3B8; }
+[data-theme="dark"] .map-empty-state { color: #94A3B8; }
+[data-theme="dark"] .map-empty-state i { color: #334155; }
+[data-theme="dark"] .map-empty-state h3 { color: #F1F5F9; }
+[data-theme="dark"] .show-map-toggle { background: var(--blue-900, #1E3A8A); }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="map-explorer-container">
-    <!-- Left Sidebar: Filters -->
-    <div class="map-sidebar" id="mapSidebar">
-        <div class="map-sidebar-header">
-            <h5 class="fw-bold mb-0"><i class="bi bi-funnel me-2"></i>Filters</h5>
-            <button class="btn btn-sm btn-outline-secondary d-lg-none" id="closeSidebar">
-                <i class="bi bi-x-lg"></i>
+<div class="map-explorer-wrapper">
+    <!-- Left: Property Cards Panel -->
+    <div class="map-properties-panel" id="propertiesPanel">
+
+        <div class="map-panel-header">
+            <div>
+                <h2>Properties in Nepal</h2>
+                <div class="result-count" id="resultCount">Loading...</div>
+            </div>
+            <a href="{% url 'properties:list' %}" style="font-size:0.8rem; color:#222; text-decoration:underline;">
+                Grid View
+            </a>
+        </div>
+
+        <!-- Filter chips row -->
+        <div class="map-filters-bar" id="filtersBar">
+            <div class="filter-chip" style="min-width:220px;">
+                <i class="bi bi-search"></i>
+                <input type="text" id="locationSearch" placeholder="District, landmark, road..." onkeydown="if(event.key==='Enter'){applyFilters();}">
+            </div>
+            <div class="filter-chip">
+                <i class="bi bi-building"></i>
+                <select name="property_type" id="filterType" onchange="applyFilters()">
+                    <option value="">All Types</option>
+                    <option value="room">Room</option>
+                    <option value="flat">Flat</option>
+                    <option value="apartment">Apartment</option>
+                    <option value="house">House</option>
+                    <option value="land">Land</option>
+                    <option value="commercial">Commercial</option>
+                </select>
+            </div>
+            <div class="filter-chip">
+                <i class="bi bi-cash"></i>
+                <select name="max_price" id="filterPrice" onchange="applyFilters()">
+                    <option value="">Any Price</option>
+                    <option value="10000">Under Rs 10K</option>
+                    <option value="25000">Under Rs 25K</option>
+                    <option value="50000">Under Rs 50K</option>
+                    <option value="100000">Under Rs 1 Lakh</option>
+                    <option value="200000">Under Rs 2 Lakh</option>
+                </select>
+            </div>
+            <div class="filter-chip">
+                <i class="bi bi-map"></i>
+                <select name="province" id="filterProvince" onchange="onProvinceChange()" style="max-width:140px;">
+                    <option value="">All Provinces</option>
+                </select>
+            </div>
+            <div class="filter-chip">
+                <i class="bi bi-geo-alt"></i>
+                <select name="district" id="filterDistrict" onchange="onDistrictChange()" style="max-width:140px;">
+                    <option value="">All Districts</option>
+                </select>
+            </div>
+            <div class="filter-chip">
+                <i class="bi bi-pin-map"></i>
+                <select name="municipality" id="filterMunicipality" onchange="onMunicipalityChange()" style="max-width:160px;">
+                    <option value="">All Municipalities</option>
+                </select>
+            </div>
+            <div class="filter-chip">
+                <i class="bi bi-bullseye"></i>
+                <select name="radius_km" id="filterRadius" onchange="applyFilters()">
+                    <option value="">Any Radius</option>
+                    <option value="1">1 km</option>
+                    <option value="3">3 km</option>
+                    <option value="5">5 km</option>
+                    <option value="10">10 km</option>
+                    <option value="15">15 km</option>
+                    <option value="20">20 km</option>
+                </select>
+            </div>
+            <div class="filter-chip">
+                <i class="bi bi-signpost-2"></i>
+                <select name="ward_number" id="filterWard" onchange="applyFilters()" style="max-width:80px;">
+                    <option value="">Ward</option>
+                </select>
+            </div>
+            <div class="filter-chip">
+                <i class="bi bi-door-open"></i>
+                <select name="num_rooms" id="filterRooms" onchange="applyFilters()">
+                    <option value="">Rooms</option>
+                    <option value="1">1+</option>
+                    <option value="2">2+</option>
+                    <option value="3">3+</option>
+                    <option value="4">4+</option>
+                </select>
+            </div>
+            <button class="filter-chip" onclick="clearFilters()" style="border-style:dashed; color:#717171;">
+                <i class="bi bi-x-circle"></i> Clear
+            </button>
+            <button class="filter-chip" onclick="centerOnCurrentLocation()" style="border-style:dashed; color:#717171;">
+                <i class="bi bi-crosshair"></i> Current Location
             </button>
         </div>
-        <div class="map-sidebar-body">
-            <form id="mapFilterForm">
-                <div class="mb-3">
-                    <label class="form-label small fw-bold">District</label>
-                    <input type="text" class="form-control form-control-sm" name="district" placeholder="e.g., Kathmandu">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label small fw-bold">Property Type</label>
-                    <select class="form-select form-select-sm" name="property_type">
-                        <option value="">All Types</option>
-                        <option value="room">Room</option>
-                        <option value="flat">Flat</option>
-                        <option value="apartment">Apartment</option>
-                        <option value="house">House</option>
-                        <option value="land">Land</option>
-                        <option value="commercial">Commercial Space</option>
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label small fw-bold">Max Price (NPR)</label>
-                    <input type="number" class="form-control form-control-sm" name="max_price" placeholder="Max price">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label small fw-bold">Min Rooms</label>
-                    <input type="number" class="form-control form-control-sm" name="num_rooms" min="0" placeholder="Min rooms">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label small fw-bold">Rental Purpose</label>
-                    <select class="form-select form-select-sm" name="rental_purpose">
-                        <option value="">Any Purpose</option>
-                        <option value="family">Family</option>
-                        <option value="office">Office</option>
-                        <option value="student">Student</option>
-                    </select>
-                </div>
-                <div class="d-grid gap-2">
-                    <button type="submit" class="btn btn-primary btn-sm">
-                        <i class="bi bi-search me-1"></i>Apply Filters
-                    </button>
-                    <button type="reset" class="btn btn-outline-secondary btn-sm" id="resetFilters">
-                        <i class="bi bi-x-circle me-1"></i>Clear Filters
-                    </button>
-                </div>
-            </form>
-        </div>
 
-        <!-- Property List in Sidebar -->
-        <div class="map-sidebar-results">
-            <div class="px-3 py-2 bg-light border-top border-bottom">
-                <small class="fw-bold text-muted" id="resultCount">Loading properties...</small>
-            </div>
-            <div id="propertyList" class="map-property-list">
-                <!-- Properties loaded dynamically -->
+        <!-- Property cards -->
+        <div class="map-cards-container" id="cardsContainer">
+            <div class="map-cards-grid" id="propertyCards">
+                <!-- Filled by JS -->
             </div>
         </div>
     </div>
 
-    <!-- Map Area -->
-    <div class="map-main">
-        <button class="btn btn-primary btn-sm map-toggle-btn d-lg-none" id="toggleSidebar">
-            <i class="bi bi-funnel me-1"></i>Filters
-        </button>
-        <div id="mapContainer" class="map-container"></div>
-    </div>
-
-    <!-- Property Info Panel (slides in when marker clicked) -->
-    <div class="map-info-panel" id="mapInfoPanel">
-        <button class="btn btn-sm btn-light map-panel-close" id="closePanel">
-            <i class="bi bi-x-lg"></i>
-        </button>
-        <div id="panelContent">
-            <!-- Populated dynamically -->
+    <!-- Right: Map Panel -->
+    <div class="map-container-panel" id="mapPanel">
+        <div id="mapContainer"></div>
+        <div class="map-loading" id="mapLoading">
+            <div class="map-loading-spinner"></div>
         </div>
     </div>
 </div>
+
+<!-- Mobile toggles -->
+<button class="show-map-toggle" id="showMapBtn" onclick="toggleMapView(true)">
+    <i class="bi bi-map"></i> Show Map
+</button>
 {% endblock %}
 
 {% block extra_js %}
-<!-- Leaflet JS (free, no API key) -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<!-- Leaflet MarkerCluster -->
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script>
+(function() {
+    'use strict';
+
     const API_URL = '/api/v1/properties/map/';
+    const DEFAULT_CENTER = [28.3949, 84.1240];
+    const DEFAULT_ZOOM = 7;
+
+    let map, markersLayer;
+    let properties = [];
+    let markerMap = {};
+    let activeMarkerId = null;
+    let loadTimeout = null;
+    let searchCenter = null;
+    let radiusCircle = null;
+
+    function initMap() {
+        map = L.map('mapContainer', {
+            center: DEFAULT_CENTER,
+            zoom: DEFAULT_ZOOM,
+            zoomControl: true,
+            scrollWheelZoom: true,
+        });
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+            maxZoom: 19,
+        }).addTo(map);
+
+        markersLayer = L.markerClusterGroup({
+            chunkedLoading: true,
+            showCoverageOnHover: false,
+            maxClusterRadius: 60,
+        }).addTo(map);
+
+        map.on('moveend', function() {
+            clearTimeout(loadTimeout);
+            loadTimeout = setTimeout(loadProperties, 300);
+        });
+
+        loadProperties();
+    }
+
+    function formatPrice(price) {
+        price = parseFloat(price);
+        if (price >= 100000) return 'Rs ' + (price / 100000).toFixed(price % 100000 === 0 ? 0 : 1) + 'L';
+        if (price >= 1000) return 'Rs ' + Math.round(price / 1000) + 'K';
+        return 'Rs ' + price.toLocaleString();
+    }
+
+    function formatPriceFull(price) {
+        return 'Rs. ' + parseFloat(price).toLocaleString('en-IN');
+    }
+
+    function loadProperties() {
+        const bounds = map.getBounds();
+        const radius = document.getElementById('filterRadius').value;
+        const center = searchCenter || map.getCenter();
+        const params = new URLSearchParams({
+            ne_lat: bounds.getNorthEast().lat,
+            ne_lng: bounds.getNorthEast().lng,
+            sw_lat: bounds.getSouthWest().lat,
+            sw_lng: bounds.getSouthWest().lng,
+            has_coords: 'true',
+            limit: '200',
+        });
+
+        const locationQuery = document.getElementById('locationSearch').value.trim();
+        const type = document.getElementById('filterType').value;
+        const price = document.getElementById('filterPrice').value;
+        const province = document.getElementById('filterProvince').value;
+        const district = document.getElementById('filterDistrict').value;
+        const municipality = document.getElementById('filterMunicipality').value;
+        const ward = document.getElementById('filterWard').value;
+        const rooms = document.getElementById('filterRooms').value;
+        if (locationQuery) params.set('location_query', locationQuery);
+        if (type) params.set('property_type', type);
+        if (price) params.set('max_price', price);
+        if (province) params.set('province', province);
+        if (district) params.set('district', district);
+        if (municipality) params.set('municipality', municipality);
+        if (ward) params.set('ward_number', ward);
+        if (rooms) params.set('num_rooms', rooms);
+        if (radius) {
+            params.set('center_lat', center.lat);
+            params.set('center_lng', center.lng);
+            params.set('radius_km', radius);
+            drawRadiusCircle(center, radius);
+        } else {
+            clearRadiusCircle();
+        }
+
+        showLoading(true);
+
+        fetch(API_URL + '?' + params.toString())
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                properties = data.properties || [];
+                renderMarkers();
+                renderCards();
+                document.getElementById('resultCount').textContent =
+                    properties.length + ' propert' + (properties.length === 1 ? 'y' : 'ies') + ' found' + (radius ? ' within ' + radius + ' km' : '');
+                showLoading(false);
+            })
+            .catch(function(err) {
+                console.error('Failed to load properties:', err);
+                showLoading(false);
+            });
+    }
+
+    function renderMarkers() {
+        markersLayer.clearLayers();
+        markerMap = {};
+
+        properties.forEach(function(prop) {
+            if (!prop.latitude || !prop.longitude) return;
+
+            var priceLabel = formatPrice(prop.price);
+            var icon = L.divIcon({
+                className: 'price-marker-wrapper',
+                html: '<div class="price-marker" data-id="' + prop.id + '">' + priceLabel + '</div>',
+                iconSize: [80, 28],
+                iconAnchor: [40, 14],
+            });
+
+            var marker = L.marker([parseFloat(prop.latitude), parseFloat(prop.longitude)], { icon: icon });
+
+            var imgHtml = prop.primary_image
+                ? '<img src="' + prop.primary_image + '" alt="' + escapeHtml(prop.title) + '">'
+                : '<div class="popup-no-img"><i class="bi bi-image"></i></div>';
+
+            var amenitiesHtml = (prop.amenities || []).slice(0, 5).map(function(a) {
+                var name = typeof a === 'object' ? a.name : a;
+                return '<span class="popup-amenity">' + escapeHtml(name) + '</span>';
+            }).join('');
+
+            var trustHtml = prop.trust_score != null
+                ? '<div class="d-flex align-items-center gap-2 mb-2"><span class="badge bg-success">Trust ' + prop.trust_score + '/100</span>' +
+                  (prop.is_verified ? '<span class="badge bg-primary">Verified</span>' : '') + '</div>'
+                : '';
+
+            var distanceHtml = prop.distance_km != null
+                ? '<div class="small text-muted mb-2"><i class="bi bi-geo me-1"></i>Approx. ' + prop.distance_km + ' km from search center</div>'
+                : '';
+
+            var desc = (prop.description || '').substring(0, 120);
+
+            var popupContent = '<div class="map-popup-card">' +
+                imgHtml +
+                '<div class="map-popup-body">' +
+                    '<h4>' + escapeHtml(prop.title) + '</h4>' +
+                    '<div class="popup-location"><i class="bi bi-geo-alt-fill"></i> ' +
+                        escapeHtml((prop.municipality ? prop.municipality + ', ' : '') + prop.district) +
+                        (prop.ward_number ? ' &middot; Ward ' + prop.ward_number : '') +
+                    '</div>' +
+                    trustHtml +
+                    distanceHtml +
+                    '<div class="popup-desc">' + escapeHtml(desc) + '</div>' +
+                    '<div class="popup-price">' + formatPriceFull(prop.price) + ' <span>/month</span></div>' +
+                    (amenitiesHtml ? '<div class="popup-amenities">' + amenitiesHtml + '</div>' : '') +
+                    '<a href="/properties/' + prop.id + '/" class="popup-view-btn">View Details</a>' +
+                '</div>' +
+            '</div>';
+
+            marker.bindPopup(popupContent, {
+                maxWidth: 280,
+                minWidth: 280,
+                closeButton: true,
+                className: 'airbnb-popup',
+            });
+
+            marker.on('click', function() {
+                highlightCard(prop.id);
+                highlightMarker(prop.id);
+            });
+
+            marker.on('popupclose', function() {
+                unhighlightAll();
+            });
+
+            markersLayer.addLayer(marker);
+            markerMap[prop.id] = marker;
+        });
+    }
+
+    function renderCards() {
+        var container = document.getElementById('propertyCards');
+
+        if (properties.length === 0) {
+            container.innerHTML = '<div class="map-empty-state">' +
+                '<i class="bi bi-map"></i>' +
+                '<h3>No properties found</h3>' +
+                '<p>Try adjusting your filters or zoom out to see more properties.</p>' +
+            '</div>';
+            return;
+        }
+
+        container.innerHTML = properties.map(function(prop) {
+            var imgUrl = prop.primary_image || '';
+            var imgHtml = imgUrl
+                ? '<img src="' + imgUrl + '" alt="' + escapeHtml(prop.title) + '" loading="lazy">'
+                : '<div class="no-img"><i class="bi bi-image"></i></div>';
+
+            var rating = prop.average_rating || 0;
+            var reviewCount = prop.review_count || 0;
+            var ratingHtml = reviewCount > 0
+                ? '<div class="airbnb-card-rating"><i class="bi bi-star-fill"></i> ' + rating.toFixed(1) + '</div>'
+                : '';
+
+            var trustBadge = prop.trust_score != null
+                ? '<span class="badge bg-success-subtle text-success border border-success-subtle">Trust ' + prop.trust_score + '/100</span>'
+                : '';
+
+            var verifiedBadge = prop.is_verified
+                ? '<span class="badge bg-primary-subtle text-primary border border-primary-subtle">Verified</span>'
+                : '';
+
+            var distanceBadge = prop.distance_km != null
+                ? '<span class="badge bg-light text-dark border">Approx. ' + prop.distance_km + ' km away</span>'
+                : '';
+
+            var rooms = prop.num_rooms || 0;
+            var details = [];
+            if (rooms > 0) details.push('<span><i class="bi bi-door-open"></i> ' + rooms + ' Room' + (rooms > 1 ? 's' : '') + '</span>');
+            if (prop.property_type_display) details.push('<span><i class="bi bi-building"></i> ' + escapeHtml(prop.property_type_display) + '</span>');
+            if (prop.ward_number) details.push('<span><i class="bi bi-pin-map"></i> Ward ' + prop.ward_number + '</span>');
+
+            return '<div class="airbnb-card" data-id="' + prop.id + '" onclick="window.mapExplorer.onCardClick(' + prop.id + ')">' +
+                '<div class="airbnb-card-img">' +
+                    imgHtml +
+                    '<span class="airbnb-card-badge">' + escapeHtml(prop.property_type_display || prop.property_type || '') + '</span>' +
+                '</div>' +
+                '<div class="airbnb-card-body">' +
+                    '<div class="airbnb-card-top">' +
+                        '<div class="airbnb-card-location">' +
+                            escapeHtml((prop.municipality ? prop.municipality + ', ' : '') + prop.district) +
+                        '</div>' +
+                        ratingHtml +
+                    '</div>' +
+                    '<div class="airbnb-card-title">' + escapeHtml(prop.title) + '</div>' +
+                    '<div class="d-flex flex-wrap gap-2 mb-2">' + trustBadge + verifiedBadge + distanceBadge + '</div>' +
+                    '<div class="airbnb-card-details">' + details.join('') + '</div>' +
+                    '<div class="airbnb-card-price"><strong>' + formatPriceFull(prop.price) + '</strong> <span>/month</span></div>' +
+                '</div>' +
+            '</div>';
+        }).join('');
+    }
+
+    function highlightCard(id) {
+        document.querySelectorAll('.airbnb-card').forEach(function(c) { c.classList.remove('highlighted'); });
+        var card = document.querySelector('.airbnb-card[data-id="' + id + '"]');
+        if (card) {
+            card.classList.add('highlighted');
+            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+
+    function highlightMarker(id) {
+        document.querySelectorAll('.price-marker').forEach(function(m) { m.classList.remove('active'); });
+        var el = document.querySelector('.price-marker[data-id="' + id + '"]');
+        if (el) el.classList.add('active');
+        activeMarkerId = id;
+    }
+
+    function unhighlightAll() {
+        document.querySelectorAll('.airbnb-card').forEach(function(c) { c.classList.remove('highlighted'); });
+        document.querySelectorAll('.price-marker').forEach(function(m) { m.classList.remove('active'); });
+        activeMarkerId = null;
+    }
+
+    function onCardClick(id) {
+        var marker = markerMap[id];
+        if (marker) {
+            map.setView(marker.getLatLng(), Math.max(map.getZoom(), 15), { animate: true });
+            marker.openPopup();
+            highlightCard(id);
+            highlightMarker(id);
+        } else {
+            window.location.href = '/properties/' + id + '/';
+        }
+    }
+
+    // Hover effects
+    document.getElementById('propertyCards').addEventListener('mouseover', function(e) {
+        var card = e.target.closest('.airbnb-card');
+        if (card) {
+            var el = document.querySelector('.price-marker[data-id="' + card.dataset.id + '"]');
+            if (el) el.classList.add('active');
+        }
+    });
+    document.getElementById('propertyCards').addEventListener('mouseout', function(e) {
+        var card = e.target.closest('.airbnb-card');
+        if (card && card.dataset.id != activeMarkerId) {
+            var el = document.querySelector('.price-marker[data-id="' + card.dataset.id + '"]');
+            if (el) el.classList.remove('active');
+        }
+    });
+
+    window.applyFilters = function() { loadProperties(); };
+    window.clearFilters = function() {
+        document.getElementById('locationSearch').value = '';
+        document.getElementById('filterType').value = '';
+        document.getElementById('filterPrice').value = '';
+        document.getElementById('filterProvince').value = '';
+        resetSelect('filterDistrict', 'All Districts');
+        resetSelect('filterMunicipality', 'All Municipalities');
+        resetSelect('filterWard', 'Ward');
+        document.getElementById('filterRooms').value = '';
+        document.getElementById('filterRadius').value = '';
+        searchCenter = null;
+        loadProperties();
+    };
+
+    window.centerOnCurrentLocation = function() {
+        if (!navigator.geolocation) {
+            alert('Current location is not supported by this browser.');
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(function(position) {
+            searchCenter = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+            };
+            map.setView([searchCenter.lat, searchCenter.lng], Math.max(map.getZoom(), 13));
+            if (document.getElementById('filterRadius').value) {
+                drawRadiusCircle(searchCenter, document.getElementById('filterRadius').value);
+            }
+            loadProperties();
+        }, function() {
+            alert('Unable to access your current location.');
+        }, { enableHighAccuracy: true, timeout: 8000 });
+    };
+
+    function resetSelect(id, label) {
+        var el = document.getElementById(id);
+        el.innerHTML = '<option value="">' + label + '</option>';
+    }
+
+    /* ── Cascading location filters for map ── */
+    var LOC_API = '/api/v1/locations/';
+
+    function populateMapSelect(el, items, label) {
+        el.innerHTML = '<option value="">' + label + '</option>';
+        items.forEach(function(item) {
+            var opt = document.createElement('option');
+            opt.value = item; opt.textContent = item;
+            el.appendChild(opt);
+        });
+    }
+
+    // Load provinces on init
+    fetch(LOC_API).then(function(r) { return r.json(); }).then(function(data) {
+        populateMapSelect(document.getElementById('filterProvince'), data.provinces || [], 'All Provinces');
+    });
+
+    window.onProvinceChange = function() {
+        var prov = document.getElementById('filterProvince').value;
+        resetSelect('filterDistrict', 'All Districts');
+        resetSelect('filterMunicipality', 'All Municipalities');
+        resetSelect('filterWard', 'Ward');
+        if (prov) {
+            fetch(LOC_API + '?province=' + encodeURIComponent(prov))
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    populateMapSelect(document.getElementById('filterDistrict'), data.districts || [], 'All Districts');
+                });
+        }
+        applyFilters();
+    };
+
+    window.onDistrictChange = function() {
+        var dist = document.getElementById('filterDistrict').value;
+        resetSelect('filterMunicipality', 'All Municipalities');
+        resetSelect('filterWard', 'Ward');
+        if (dist) {
+            fetch(LOC_API + '?district=' + encodeURIComponent(dist))
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    populateMapSelect(document.getElementById('filterMunicipality'), data.municipalities || [], 'All Municipalities');
+                });
+        }
+        applyFilters();
+    };
+
+    window.onMunicipalityChange = function() {
+        var muni = document.getElementById('filterMunicipality').value;
+        var dist = document.getElementById('filterDistrict').value;
+        resetSelect('filterWard', 'Ward');
+        if (muni) {
+            var url = LOC_API + '?municipality=' + encodeURIComponent(muni);
+            if (dist) url += '&district=' + encodeURIComponent(dist);
+            fetch(url).then(function(r) { return r.json(); }).then(function(data) {
+                populateMapSelect(document.getElementById('filterWard'), data.wards || [], 'Ward');
+            });
+        }
+        applyFilters();
+    };
+
+    window.toggleMapView = function(showMap) {
+        var panel = document.getElementById('propertiesPanel');
+        var mapP = document.getElementById('mapPanel');
+        var showBtn = document.getElementById('showMapBtn');
+
+        if (showMap) {
+            panel.classList.add('map-view-active');
+            mapP.classList.add('map-view-active');
+            showBtn.innerHTML = '<i class="bi bi-list-ul"></i> Show List';
+            showBtn.onclick = function() { toggleMapView(false); };
+            setTimeout(function() { map.invalidateSize(); }, 100);
+        } else {
+            panel.classList.remove('map-view-active');
+            mapP.classList.remove('map-view-active');
+            showBtn.innerHTML = '<i class="bi bi-map"></i> Show Map';
+            showBtn.onclick = function() { toggleMapView(true); };
+        }
+    };
+
+    function showLoading(show) {
+        var el = document.getElementById('mapLoading');
+        if (show) el.classList.remove('hidden');
+        else el.classList.add('hidden');
+    }
+
+    function drawRadiusCircle(center, radiusKm) {
+        clearRadiusCircle();
+        radiusCircle = L.circle([center.lat, center.lng], {
+            radius: radiusKm * 1000,
+            color: '#0d6efd',
+            weight: 2,
+            fillColor: '#0d6efd',
+            fillOpacity: 0.12,
+        }).addTo(map);
+    }
+
+    function clearRadiusCircle() {
+        if (radiusCircle) {
+            map.removeLayer(radiusCircle);
+            radiusCircle = null;
+        }
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        var div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    window.mapExplorer = { onCardClick: onCardClick };
+
+    document.addEventListener('DOMContentLoaded', initMap);
+
+    // After initial load, check for focus params from chatbot/external links
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const focusLat = parseFloat(urlParams.get('focus_lat'));
+        const focusLng = parseFloat(urlParams.get('focus_lng'));
+        const focusId = urlParams.get('focus_id');
+
+        if (focusLat && focusLng && !isNaN(focusLat) && !isNaN(focusLng)) {
+            // Wait for map and initial load to complete, then zoom to the property
+            setTimeout(function() {
+                map.setView([focusLat, focusLng], 16);
+
+                // Add a highlighted marker at the focused location
+                var focusIcon = L.divIcon({
+                    html: '<div style="background:#DC143C;color:#fff;padding:4px 10px;border-radius:20px;font-size:13px;font-weight:700;white-space:nowrap;border:2px solid #fff;box-shadow:0 2px 12px rgba(220,20,60,0.6);animation:pulse-focus 1.5s ease-in-out infinite;"><i class="bi bi-geo-alt-fill"></i> Here</div>',
+                    iconSize: [80, 30],
+                    iconAnchor: [40, 30],
+                    className: ''
+                });
+                var focusMarker = L.marker([focusLat, focusLng], { icon: focusIcon, zIndexOffset: 9999 }).addTo(map);
+
+                // Auto-remove focus marker after 8 seconds
+                setTimeout(function() {
+                    if (focusMarker) map.removeLayer(focusMarker);
+                }, 8000);
+
+                // If we have a property ID, try to highlight its card too
+                if (focusId) {
+                    setTimeout(function() {
+                        var card = document.querySelector('[data-id="' + focusId + '"]');
+                        if (card) {
+                            card.classList.add('highlighted');
+                            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }, 1500);
+                }
+            }, 1200);
+        }
+    });
+})();
 </script>
-<script src="{% static 'js/map.js' %}"></script>
 {% endblock %}

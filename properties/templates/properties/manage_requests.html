@@ -124,6 +124,15 @@
                                 </div>
                                 {% endif %}
                             </div>
+                            {% elif req.request_type == 'visit' %}
+                            <div class="small">
+                                {% if req.visit_date %}
+                                <div><i class="bi bi-calendar me-1 text-primary"></i>Visit Date: <strong>{{ req.visit_date|date:"M d, Y" }}</strong></div>
+                                {% endif %}
+                                {% if req.visit_time %}
+                                <div><i class="bi bi-clock me-1 text-primary"></i>Visit Time: <strong>{{ req.visit_time|time:"g:i A" }}</strong></div>
+                                {% endif %}
+                            </div>
                             {% endif %}
 
                             <p class="small text-muted mb-0 mt-1" style="white-space: pre-line;">{{ req.message|truncatechars:120 }}</p>

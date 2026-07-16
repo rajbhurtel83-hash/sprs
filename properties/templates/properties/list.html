@@ -76,6 +76,20 @@
     color: var(--slate-400);
 }
 [data-theme="dark"] .no-image-placeholder { background: linear-gradient(135deg,#1e293b,#0f172a); }
+
+/* Dark mode - List page */
+[data-theme="dark"] .list-page-hero {
+    background: linear-gradient(135deg, #050810 0%, #0A0F1E 55%, #111827 100%);
+    border-bottom-color: rgba(245,158,11,.08);
+}
+[data-theme="dark"] .search-filter-card { background: var(--color-surface); border-color: var(--color-border); }
+[data-theme="dark"] .card-title a { color: var(--color-text); }
+[data-theme="dark"] .card-title a:hover { color: var(--blue-400); }
+[data-theme="dark"] .card-location { color: var(--color-muted); }
+[data-theme="dark"] .card-owner-name { color: var(--color-muted); }
+[data-theme="dark"] .card-view-btn { background: var(--blue-800); }
+[data-theme="dark"] .card-view-btn:hover { background: var(--blue-600); }
+[data-theme="dark"] .card-price-tag { background: linear-gradient(135deg, #0A0F1E, #111827); }
 </style>
 {% endblock %}
 
@@ -120,29 +134,43 @@
                     {{ form.property_type }}
                 </div>
                 <div class="col-md-4 col-lg-2">
-                    <label for="{{ form.district.id_for_label }}" class="form-label">
-                        <i class="bi bi-geo-alt me-1"></i>District
+                    <label class="form-label">
+                        <i class="bi bi-map me-1"></i>Province
                     </label>
-                    {{ form.district }}
+                    <select name="province" id="id_province" class="form-select">
+                        <option value="">All Provinces</option>
+                    </select>
                 </div>
                 <div class="col-md-4 col-lg-2">
-                    <label for="{{ form.municipality.id_for_label }}" class="form-label">
+                    <label class="form-label">
+                        <i class="bi bi-geo-alt me-1"></i>District
+                    </label>
+                    <select name="district" id="id_district" class="form-select">
+                        <option value="">All Districts</option>
+                    </select>
+                </div>
+                <div class="col-md-4 col-lg-2">
+                    <label class="form-label">
                         <i class="bi bi-pin-map me-1"></i>Municipality
                     </label>
-                    {{ form.municipality }}
+                    <select name="municipality" id="id_municipality" class="form-select">
+                        <option value="">All Municipalities</option>
+                    </select>
                 </div>
                 <div class="col-6 col-lg-1">
-                    <label for="{{ form.ward_number.id_for_label }}" class="form-label">Ward</label>
-                    {{ form.ward_number }}
+                    <label class="form-label">Ward</label>
+                    <select name="ward_number" id="id_ward_number" class="form-select">
+                        <option value="">All</option>
+                    </select>
                 </div>
+            </div>
+            <div class="row g-3 mt-1">
                 <div class="col-6 col-lg-2">
                     <label for="{{ form.min_price.id_for_label }}" class="form-label">
                         <i class="bi bi-currency-rupee me-1"></i>Min Price
                     </label>
                     {{ form.min_price }}
                 </div>
-            </div>
-            <div class="row g-3 mt-1">
                 <div class="col-6 col-lg-2">
                     <label for="{{ form.max_price.id_for_label }}" class="form-label">
                         <i class="bi bi-currency-rupee me-1"></i>Max Price
@@ -167,7 +195,7 @@
                     </label>
                     {{ form.sort }}
                 </div>
-                <div class="col-md-4 col-lg-4 d-flex align-items-end gap-2">
+                <div class="col-md-4 col-lg-2 d-flex align-items-end gap-2">
                     <button type="submit" class="sprs-btn-primary">
                         <i class="bi bi-search"></i> Search
                     </button>
@@ -365,10 +393,107 @@
     {% endif %}
 
 </div><!-- /.container -->
+
+<!-- Floating "Show Map" button (Airbnb-style) -->
+<a href="{% url 'properties:map_explorer' %}"
+   style="position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:999;
+          background:#222; color:#fff; padding:12px 28px; border-radius:24px;
+          font-size:0.9rem; font-weight:600; text-decoration:none;
+          box-shadow:0 4px 14px rgba(0,0,0,0.35); display:inline-flex;
+          align-items:center; gap:8px; transition: all 0.2s;"
+   onmouseover="this.style.background='#000'; this.style.transform='translateX(-50%) scale(1.05)'"
+   onmouseout="this.style.background='#222'; this.style.transform='translateX(-50%)'">
+    <i class="bi bi-map-fill"></i> Show Map
+</a>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+/* ── Cascading location dropdowns ── */
+const API_URL = '/api/v1/locations/';
+const provinceEl  = document.getElementById('id_province');
+const districtEl  = document.getElementById('id_district');
+const muniEl      = document.getElementById('id_municipality');
+const wardEl      = document.getElementById('id_ward_number');
+
+// Preserve current query-param values (so dropdowns re-select after page reload)
+const params = new URLSearchParams(window.location.search);
+const curProvince = params.get('province') || '';
+const curDistrict = params.get('district') || '';
+const curMuni     = params.get('municipality') || '';
+const curWard     = params.get('ward_number') || '';
+
+function populateSelect(el, items, current, allLabel) {
+    el.innerHTML = `<option value="">${allLabel}</option>`;
+    items.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item;
+        opt.textContent = item;
+        if (item === current) opt.selected = true;
+        el.appendChild(opt);
+    });
+}
+
+async function fetchJSON(url) {
+    const r = await fetch(url);
+    return r.json();
+}
+
+// Load provinces on page load
+async function initFilters() {
+    const data = await fetchJSON(API_URL);
+    populateSelect(provinceEl, data.provinces || [], curProvince, 'All Provinces');
+
+    if (curProvince) await loadDistricts(curProvince);
+    if (curDistrict) await loadMunicipalities(curDistrict);
+    if (curMuni) await loadWards(curMuni, curDistrict);
+}
+
+async function loadDistricts(province) {
+    const data = await fetchJSON(`${API_URL}?province=${encodeURIComponent(province)}`);
+    populateSelect(districtEl, data.districts || [], curDistrict, 'All Districts');
+    if (!curDistrict) {
+        populateSelect(muniEl, [], '', 'All Municipalities');
+        populateSelect(wardEl, [], '', 'All');
+    }
+}
+
+async function loadMunicipalities(district) {
+    const data = await fetchJSON(`${API_URL}?district=${encodeURIComponent(district)}`);
+    populateSelect(muniEl, data.municipalities || [], curMuni, 'All Municipalities');
+    if (!curMuni) {
+        populateSelect(wardEl, [], '', 'All');
+    }
+}
+
+async function loadWards(municipality, district) {
+    let url = `${API_URL}?municipality=${encodeURIComponent(municipality)}`;
+    if (district) url += `&district=${encodeURIComponent(district)}`;
+    const data = await fetchJSON(url);
+    populateSelect(wardEl, data.wards || [], curWard, 'All');
+}
+
+provinceEl.addEventListener('change', function() {
+    populateSelect(districtEl, [], '', 'All Districts');
+    populateSelect(muniEl, [], '', 'All Municipalities');
+    populateSelect(wardEl, [], '', 'All');
+    if (this.value) loadDistricts(this.value);
+});
+
+districtEl.addEventListener('change', function() {
+    populateSelect(muniEl, [], '', 'All Municipalities');
+    populateSelect(wardEl, [], '', 'All');
+    if (this.value) loadMunicipalities(this.value);
+});
+
+muniEl.addEventListener('change', function() {
+    populateSelect(wardEl, [], '', 'All');
+    if (this.value) loadWards(this.value, districtEl.value);
+});
+
+initFilters();
+
+/* ── Compare button ── */
 function addToComparison(propertyId) {
     fetch(`/properties/compare/add/${propertyId}/`, {
         method: 'GET',

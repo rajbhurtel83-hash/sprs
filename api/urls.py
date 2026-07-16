@@ -9,4 +9,5 @@ urlpatterns = [
     path('properties/<int:pk>/', views.PropertyDetailAPIView.as_view(), name='property_detail'),
     path('amenities/', views.amenities_list, name='amenities'),
     path('search/suggestions/', views.search_suggestions, name='search_suggestions'),
+    path('locations/', views.location_data, name='location_data'),
 ]

@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load form_tags %}
 
 {% block title %}Compare Properties - SPRS{% endblock %}
 
@@ -334,10 +335,14 @@
                 <div class="compare-card-body">
                     <h5 class="compare-card-title">{{ property.title|truncatewords:5 }}</h5>
                     <p class="text-muted small mb-2">
-                        <i class="bi bi-geo-alt me-1"></i>{{ property.city }}
+                        <i class="bi bi-geo-alt me-1"></i>{{ property.municipality|default:property.district }}{% if property.district %}, {{ property.district }}{% endif %}
                     </p>
                     <div class="compare-card-price">
                         NPR {{ property.price|floatformat:0 }}<small class="text-muted">/mo</small>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">Trust {{ property.trust_score }}/100</span>
+                        {% if property.is_verified %}<span class="badge bg-primary-subtle text-primary border border-primary-subtle">Verified</span>{% endif %}
                     </div>
                     <a href="{% url 'properties:detail' property.pk %}" class="view-property-btn">
                         View Details
@@ -398,18 +403,7 @@
                 </div>
                 {% for property in properties %}
                 <div class="comparison-row-value">
-                    {{ property.bedrooms }} BHK
-                </div>
-                {% endfor %}
-            </div>
-            
-            <div class="comparison-row">
-                <div class="comparison-row-label">
-                    <i class="bi bi-droplet"></i> Bathrooms
-                </div>
-                {% for property in properties %}
-                <div class="comparison-row-value">
-                    {{ property.bathrooms }}
+                    {{ property.num_rooms }} room{{ property.num_rooms|pluralize }}
                 </div>
                 {% endfor %}
             </div>
@@ -420,7 +414,26 @@
                 </div>
                 {% for property in properties %}
                 <div class="comparison-row-value">
-                    {{ property.area }} sq ft
+                    {% with area=property.total_area %}
+                        {% if area %}
+                            {{ area }}
+                        {% else %}
+                            {% with overview=property.property_overview %}
+                                {{ overview|get_item:'total_area'|default:'N/A' }}
+                            {% endwith %}
+                        {% endif %}
+                    {% endwith %}
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="comparison-row">
+                <div class="comparison-row-label">
+                    <i class="bi bi-patch-check"></i> Trust Score
+                </div>
+                {% for property in properties %}
+                <div class="comparison-row-value">
+                    <strong>{{ property.trust_score }}/100</strong>
                 </div>
                 {% endfor %}
             </div>
@@ -431,7 +444,7 @@
                 </div>
                 {% for property in properties %}
                 <div class="comparison-row-value">
-                    {{ property.city }}{% if property.address %}, {{ property.address|truncatewords:3 }}{% endif %}
+                    {{ property.municipality|default:property.district }}{% if property.address %}, {{ property.address|truncatewords:3 }}{% endif %}
                 </div>
                 {% endfor %}
             </div>
@@ -472,7 +485,7 @@
             <!-- Amenities Section -->
             {% if all_amenities %}
             <div class="p-3 bg-light mt-3">
-                <h6 class="fw-bold mb-3"><i class="bi bi-check2-square me-2"></i>Amenities</h6>
+                <h6 class="fw-bold mb-3"><i class="bi bi-check2-square me-2"></i>Amenities, Charges & Nearby Facilities</h6>
             </div>
             
             {% for amenity in all_amenities %}
@@ -482,19 +495,38 @@
                 </div>
                 {% for property in properties %}
                 <div class="comparison-row-value">
-                    {% if amenity in property.amenities.all|join:", " %}
-                    <span class="amenity-check yes">
-                        <i class="bi bi-check-lg"></i>
-                    </span>
-                    {% else %}
-                    <span class="amenity-check no">
-                        <i class="bi bi-x-lg"></i>
-                    </span>
-                    {% endif %}
+                    {% for card in property.amenity_cards %}
+                        {% if card.name == amenity %}
+                        <span class="badge {% if card.status == 'included' %}bg-success{% elif card.status == 'extra' %}bg-warning text-dark{% elif card.status == 'usage' %}bg-info text-dark{% else %}bg-secondary{% endif %} mb-1">
+                            {{ card.status_label }}{% if card.monthly_charge %} · Rs. {{ card.monthly_charge|floatformat:0 }}{% endif %}
+                        </span>
+                        {% endif %}
+                    {% endfor %}
                 </div>
                 {% endfor %}
             </div>
             {% endfor %}
+            {% endif %}
+
+            {% if properties %}
+            <div class="comparison-row">
+                <div class="comparison-row-label">
+                    <i class="bi bi-geo-alt-fill"></i> Nearby Facilities
+                </div>
+                {% for property in properties %}
+                <div class="comparison-row-value">
+                    {% if property.nearby_place_cards %}
+                    <div class="d-flex flex-column gap-1">
+                        {% for place in property.nearby_place_cards|slice:":3" %}
+                        <span class="badge bg-light text-dark border align-self-start">{{ place.name }}{% if place.distance %} · {{ place.distance }}{% endif %}</span>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <span class="text-muted">No data</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
             {% endif %}
         </div>
     </div>

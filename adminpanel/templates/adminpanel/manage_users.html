@@ -97,6 +97,9 @@
                                 <span class="badge bg-secondary bg-opacity-10 text-secondary">
                                     <i class="bi bi-x-circle me-1"></i>Inactive
                                 </span>
+                                {% if u.deactivation_reason %}
+                                <div class="small text-muted mt-1">Reason: {{ u.deactivation_reason }}</div>
+                                {% endif %}
                                 {% endif %}
                             </td>
                             <td>
@@ -105,9 +108,11 @@
                             <td class="text-center">
                                 <form method="post" action="{% url 'adminpanel:toggle_user' u.pk %}" class="d-inline">
                                     {% csrf_token %}
+                                    <input type="hidden" name="deactivation_reason" value="">
                                     {% if u.is_active %}
                                     <button type="submit" class="btn btn-sm btn-outline-danger" title="Deactivate user"
-                                            onclick="return confirm('Are you sure you want to deactivate {{ u.username }}?');">
+                                            data-username="{{ u.username|escapejs }}"
+                                            onclick="return promptDeactivationReason(this);">
                                         <i class="bi bi-person-x me-1"></i>Deactivate
                                     </button>
                                     {% else %}
@@ -190,4 +195,33 @@
         </div>
     </div>
 </div>
+
+<script>
+function promptDeactivationReason(button) {
+    const form = button.closest('form');
+    if (!form) {
+        return false;
+    }
+
+    const username = button.getAttribute('data-username') || 'this user';
+    const reason = window.prompt('Enter a reason for deactivating ' + username + ':');
+
+    if (reason === null) {
+        return false;
+    }
+
+    const trimmedReason = reason.trim();
+    if (!trimmedReason) {
+        alert('A deactivation reason is required.');
+        return false;
+    }
+
+    const reasonInput = form.querySelector('input[name="deactivation_reason"]');
+    if (reasonInput) {
+        reasonInput.value = trimmedReason;
+    }
+
+    return true;
+}
+</script>
 {% endblock %}

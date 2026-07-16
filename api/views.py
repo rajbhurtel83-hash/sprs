@@ -1,15 +1,22 @@
+import logging
+
 from rest_framework import generics, filters, status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import Q, Avg, Count
+import math
 from properties.models import Property, Amenity
+from properties.models import get_canonical_district_choices
 from .serializers import (
     PropertyListSerializer,
     PropertyDetailSerializer,
     MapPropertySerializer,
     AmenitySerializer,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 class StandardPagination(PageNumberPagination):
@@ -45,6 +52,10 @@ class PropertyListAPIView(generics.ListAPIView):
         municipality = params.get('municipality')
         if municipality:
             qs = qs.filter(municipality__icontains=municipality)
+
+        province = params.get('province')
+        if province:
+            qs = qs.filter(province__iexact=province)
 
         ward = params.get('ward_number')
         if ward:
@@ -107,6 +118,28 @@ def map_properties(request):
         is_approved=True,
     ).select_related('owner').prefetch_related('images', 'reviews', 'amenities')
 
+    keyword = request.query_params.get('keyword')
+    location_query = request.query_params.get('location_query')
+
+    if keyword:
+        qs = qs.filter(
+            Q(title__icontains=keyword)
+            | Q(description__icontains=keyword)
+            | Q(address__icontains=keyword)
+            | Q(district__icontains=keyword)
+            | Q(municipality__icontains=keyword)
+        )
+
+    if location_query:
+        qs = qs.filter(
+            Q(title__icontains=location_query)
+            | Q(address__icontains=location_query)
+            | Q(district__icontains=location_query)
+            | Q(municipality__icontains=location_query)
+            | Q(ward_number__icontains=location_query)
+            | Q(property_overview__icontains=location_query)
+        )
+
     # Location filters
     district = request.query_params.get('district')
     if district:
@@ -115,6 +148,15 @@ def map_properties(request):
     municipality = request.query_params.get('municipality')
     if municipality:
         qs = qs.filter(municipality__icontains=municipality)
+
+    province = request.query_params.get('province')
+    if province:
+        qs = qs.filter(province__iexact=province)
+
+    # Ward filter
+    ward_number = request.query_params.get('ward_number')
+    if ward_number:
+        qs = qs.filter(ward_number=ward_number)
 
     # Property type filter
     prop_type = request.query_params.get('property_type')
@@ -140,10 +182,29 @@ def map_properties(request):
     if rental_purpose:
         qs = qs.filter(rental_purpose=rental_purpose)
 
-    # Rating filter
+    # Rating filter (use annotation since average_rating is a model property)
     min_rating = request.query_params.get('min_rating')
     if min_rating:
-        qs = qs.filter(average_rating__gte=float(min_rating))
+        qs = qs.annotate(avg_rating=Avg('reviews__rating')).filter(avg_rating__gte=float(min_rating))
+
+    center_lat = request.query_params.get('center_lat')
+    center_lng = request.query_params.get('center_lng')
+    radius_km = request.query_params.get('radius_km')
+    if center_lat and center_lng and radius_km:
+        try:
+            radius_km = float(radius_km)
+            center_lat = float(center_lat)
+            center_lng = float(center_lng)
+            lat_delta = radius_km / 111.0
+            lng_delta = radius_km / max(111.0 * abs(math.cos(math.radians(center_lat))), 0.01)
+            qs = qs.filter(
+                latitude__gte=center_lat - lat_delta,
+                latitude__lte=center_lat + lat_delta,
+                longitude__gte=center_lng - lng_delta,
+                longitude__lte=center_lng + lng_delta,
+            )
+        except (TypeError, ValueError):
+            logger.debug('Ignoring invalid radius filter values')
 
     # Bounding box filter for map viewport
     ne_lat = request.query_params.get('ne_lat')
@@ -152,12 +213,15 @@ def map_properties(request):
     sw_lng = request.query_params.get('sw_lng')
 
     if all([ne_lat, ne_lng, sw_lat, sw_lng]):
-        qs = qs.filter(
-            latitude__gte=float(sw_lat),
-            latitude__lte=float(ne_lat),
-            longitude__gte=float(sw_lng),
-            longitude__lte=float(ne_lng),
-        )
+        try:
+            qs = qs.filter(
+                latitude__gte=float(sw_lat),
+                latitude__lte=float(ne_lat),
+                longitude__gte=float(sw_lng),
+                longitude__lte=float(ne_lng),
+            )
+        except (TypeError, ValueError):
+            logger.debug('Ignoring invalid bounding box filter values')
 
     # Only return properties with coordinates for mapping
     has_coords = request.query_params.get('has_coords', 'true')
@@ -171,7 +235,10 @@ def map_properties(request):
         qs = qs.order_by(sort_by)
 
     # Limit results
-    limit = min(int(request.query_params.get('limit', 200)), 500)
+    try:
+        limit = min(int(request.query_params.get('limit', 200)), 500)
+    except (TypeError, ValueError):
+        limit = 200
 
     serializer = MapPropertySerializer(qs[:limit], many=True, context={'request': request})
     return Response({
@@ -220,3 +287,49 @@ def search_suggestions(request):
     )
 
     return Response(suggestions[:10])
+
+
+@api_view(['GET'])
+def location_data(request):
+    """Return cascading location data for filters.
+
+    Query params:
+        province  -> returns districts in that province
+        district  -> returns municipalities in that district
+        municipality -> returns ward numbers in that municipality
+        (none)    -> returns all provinces
+    """
+    available = Property.objects.filter(
+        status=Property.Status.AVAILABLE, is_approved=True
+    ).order_by()  # clear default ordering so .distinct() works on PostgreSQL
+
+    province = request.query_params.get('province')
+    district = request.query_params.get('district')
+    municipality = request.query_params.get('municipality')
+
+    if municipality:
+        qs = available.filter(municipality__iexact=municipality)
+        if district:
+            qs = qs.filter(district__iexact=district)
+        wards = sorted(
+            qs.values_list('ward_number', flat=True).distinct(),
+            key=lambda w: int(w) if w.isdigit() else 0,
+        )
+        return Response({'wards': wards})
+
+    if district:
+        qs = available.filter(district__iexact=district)
+        municipalities = sorted(
+            qs.values_list('municipality', flat=True).distinct()
+        )
+        return Response({'municipalities': municipalities})
+
+    if province:
+        districts = [label for label, _ in get_canonical_district_choices(province)]
+        return Response({'districts': districts})
+
+    # No filter = return all provinces
+    provinces = sorted(
+        available.exclude(province='').values_list('province', flat=True).distinct()
+    )
+    return Response({'provinces': provinces})

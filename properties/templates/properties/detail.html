@@ -8,6 +8,7 @@
 {% if property.has_location %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
       integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css">
 {% endif %}
 <style>
 /* Star rating input */
@@ -28,6 +29,135 @@
 .star-rating-input label:hover,
 .star-rating-input label:hover ~ label {
     color: #ffc107;
+}
+
+.trust-ring {
+    width: 92px;
+    height: 92px;
+    border-radius: 50%;
+    background: conic-gradient(#16a34a calc(var(--score) * 1%), #e5e7eb 0);
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+}
+
+.trust-ring-inner {
+    width: 74px;
+    height: 74px;
+    border-radius: 50%;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    line-height: 1;
+}
+
+.detail-chip {
+    border-radius: 999px;
+    padding: .55rem .85rem;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    font-size: .88rem;
+}
+
+.overview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 12px;
+}
+
+.overview-card {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 14px;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    min-height: 84px;
+}
+
+.overview-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    background: rgba(13,110,253,.1);
+    color: #0d6efd;
+    flex-shrink: 0;
+}
+
+.amenity-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    padding: 14px;
+    background: #fff;
+    height: 100%;
+}
+
+.amenity-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.badge-soft {
+    border-radius: 999px;
+    padding: .4rem .7rem;
+    font-size: .75rem;
+}
+
+.verification-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 10px;
+}
+
+.verification-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+}
+
+.verification-item.active {
+    border-color: rgba(25,135,84,.25);
+    background: rgba(25,135,84,.05);
+}
+
+.nearby-item-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    background: #fff;
+}
+
+.gallery-thumb {
+    width: 96px;
+    height: 72px;
+    object-fit: cover;
+    border-radius: 12px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform .2s ease, border-color .2s ease;
+}
+
+.gallery-thumb:hover {
+    transform: translateY(-2px);
+    border-color: #0d6efd;
+}
+
+.gallery-actions .btn {
+    border-radius: 999px;
 }
 </style>
 {% endblock %}
@@ -62,7 +192,7 @@
                     <div class="carousel-item {% if forloop.first %}active{% endif %}">
                         <img src="{{ image.image.url }}" class="d-block w-100"
                              style="height: 450px; object-fit: cover;"
-                             alt="{{ image.caption|default:property.title }}">
+                             alt="{{ image.caption|default:property.title }}" loading="{% if forloop.first %}eager{% else %}lazy{% endif %}">
                         {% if image.caption %}
                         <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded px-3 py-1">
                             <p class="mb-0">{{ image.caption }}</p>
@@ -82,11 +212,37 @@
                 </button>
                 {% endif %}
             </div>
+            {% if property.images.count > 1 %}
+            <div class="d-flex flex-wrap gap-2 mb-4 gallery-actions">
+                <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#galleryModal">
+                    <i class="bi bi-arrows-fullscreen me-1"></i>Open Gallery
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" type="button" onclick="shareProperty()">
+                    <i class="bi bi-share me-1"></i>Share
+                </button>
+            </div>
+            {% endif %}
             {% else %}
             <div class="bg-light rounded d-flex align-items-center justify-content-center mb-4 shadow-sm" style="height: 350px;">
                 <div class="text-center text-muted">
                     <i class="bi bi-image" style="font-size: 5rem;"></i>
                     <p class="mt-2 mb-0">No images available</p>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if property.images.count > 1 %}
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h5 class="card-title fw-bold mb-0"><i class="bi bi-images me-2"></i>Gallery</h5>
+                        <span class="text-muted small">{{ property.images.count }} photos</span>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for image in property.images.all %}
+                        <img src="{{ image.image.url }}" class="gallery-thumb" alt="{{ image.caption|default:property.title }}" loading="lazy" onclick="openGallery({{ forloop.counter0 }})">
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
             {% endif %}
@@ -110,7 +266,7 @@
                     <h1 class="h2 fw-bold mb-1">{{ property.title }}</h1>
                     <p class="text-muted mb-0">
                         <i class="bi bi-geo-alt me-1"></i>
-                        {{ property.address }}{% if property.municipality %}, {{ property.municipality }}{% endif %}, {{ property.district }} - Ward {{ property.ward_number }}
+                        {{ property.address }}{% if property.municipality %}, {{ property.municipality }}{% endif %}, {{ property.district }}{% if property.province %} ({{ property.province }}){% endif %} - Ward {{ property.ward_number }}
                     </p>
                 </div>
                 <!-- Favorite Button -->
@@ -152,6 +308,68 @@
             </div>
             {% endif %}
 
+            {% if review_averages.rating %}
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-graph-up-arrow me-2"></i>Review Insights</h5>
+                    <div class="overview-grid">
+                        <div class="overview-card"><div class="overview-icon"><i class="bi bi-star-fill"></i></div><div><small class="text-muted d-block">Overall</small><strong>{{ review_averages.rating|floatformat:1 }}/5</strong></div></div>
+                        <div class="overview-card"><div class="overview-icon"><i class="bi bi-droplet-half"></i></div><div><small class="text-muted d-block">Water Supply</small><strong>{{ review_averages.water_supply|default_if_none:"N/A"|floatformat:1 }}</strong></div></div>
+                        <div class="overview-card"><div class="overview-icon"><i class="bi bi-wifi"></i></div><div><small class="text-muted d-block">Internet</small><strong>{{ review_averages.internet_quality|default_if_none:"N/A"|floatformat:1 }}</strong></div></div>
+                        <div class="overview-card"><div class="overview-icon"><i class="bi bi-shield-check"></i></div><div><small class="text-muted d-block">Security</small><strong>{{ review_averages.security|default_if_none:"N/A"|floatformat:1 }}</strong></div></div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Trust & Verification Snapshot -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body d-flex flex-column flex-md-row gap-3 align-items-md-center justify-content-between">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="trust-ring" style="--score: {{ property.trust_score|default:0 }};">
+                            <div class="trust-ring-inner">
+                                <strong class="fs-5">{{ property.trust_score|default:0 }}</strong>
+                                <small class="text-muted">/100</small>
+                            </div>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-1">Trust Score</h5>
+                            <p class="text-muted mb-0">Built from verified documents, location accuracy, photos, reviews, and profile completeness.</p>
+                        </div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% if property.is_verified %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2">
+                            <i class="bi bi-patch-check me-1"></i>Verified Property
+                        </span>
+                        {% endif %}
+                        {% if property.is_approved %}
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2">
+                            <i class="bi bi-shield-check me-1"></i>Admin Approved
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Property Overview -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-grid-1x2-fill me-2"></i>Property Overview</h5>
+                    <div class="overview-grid">
+                        {% for item in property.overview_cards %}
+                        <div class="overview-card">
+                            <div class="overview-icon"><i class="bi {{ item.icon }}"></i></div>
+                            <div>
+                                <small class="text-muted d-block">{{ item.label }}</small>
+                                <strong>{{ item.value }}</strong>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
             <!-- Description -->
             <div class="card shadow-sm border-0 mb-4">
                 <div class="card-body">
@@ -160,74 +378,138 @@
                 </div>
             </div>
 
-            <!-- Property Details Grid -->
+            <!-- Amenities -->
             <div class="card shadow-sm border-0 mb-4">
                 <div class="card-body">
-                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-list-check me-2"></i>Property Details</h5>
+                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-check2-square me-2"></i>Amenities & Charges</h5>
+                    {% if property.amenity_cards %}
                     <div class="row g-3">
-                        <div class="col-sm-6">
-                            <div class="d-flex align-items-center p-3 bg-light rounded">
-                                <i class="bi bi-building text-primary me-3" style="font-size: 1.5rem;"></i>
-                                <div><small class="text-muted d-block">Property Type</small><strong>{{ property.get_property_type_display }}</strong></div>
+                        {% for amenity in property.amenity_cards %}
+                        <div class="col-md-6 col-lg-4">
+                            <div class="amenity-card">
+                                <div class="amenity-meta mb-2">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="bi {{ amenity.icon }} text-primary"></i>
+                                        <strong>{{ amenity.name }}</strong>
+                                    </div>
+                                    <span class="badge {{ amenity.badge_class }} badge-soft">{{ amenity.status_label }}</span>
+                                </div>
+                                {% if amenity.status == 'extra' and amenity.monthly_charge %}
+                                <div class="text-muted small">Monthly Charge</div>
+                                <div class="fw-semibold">Rs. {{ amenity.monthly_charge|intcomma }}</div>
+                                {% elif amenity.status == 'usage' %}
+                                <div class="text-muted small">Pay according to usage or meter reading</div>
+                                {% elif amenity.status == 'unavailable' %}
+                                <div class="text-muted small">Not available at this property</div>
+                                {% else %}
+                                <div class="text-success small fw-semibold">Included in rent</div>
+                                {% endif %}
+                                {% if amenity.notes %}
+                                <p class="small text-muted mb-0 mt-2">{{ amenity.notes }}</p>
+                                {% endif %}
                             </div>
                         </div>
-                        <div class="col-sm-6">
-                            <div class="d-flex align-items-center p-3 bg-light rounded">
-                                <i class="bi bi-door-open text-primary me-3" style="font-size: 1.5rem;"></i>
-                                <div><small class="text-muted d-block">Rooms</small><strong>{{ property.num_rooms|default:"N/A" }}</strong></div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">Amenity charging rules will appear here once the owner completes the listing details.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Verification Badges -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-patch-check me-2"></i>Verification Status</h5>
+                    <div class="verification-grid">
+                        {% for item in property.verification_badges %}
+                        <div class="verification-item {% if item.active %}active{% endif %}">
+                            <i class="bi {{ item.icon }} text-{% if item.active %}success{% else %}muted{% endif %}"></i>
+                            <div>
+                                <div class="fw-semibold">{{ item.label }}</div>
+                                {% if item.detail %}<small class="text-muted">{{ item.detail }}</small>{% endif %}
                             </div>
                         </div>
-                        <div class="col-sm-6">
-                            <div class="d-flex align-items-center p-3 bg-light rounded">
-                                <i class="bi bi-geo text-primary me-3" style="font-size: 1.5rem;"></i>
-                                <div><small class="text-muted d-block">District</small><strong>{{ property.district }}</strong></div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            {% if property.images.count > 1 %}
+            <div class="modal fade" id="galleryModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content border-0 shadow-lg">
+                        <div class="modal-header border-0">
+                            <div>
+                                <h5 class="modal-title fw-bold mb-0">Property Gallery</h5>
+                                <small class="text-muted" id="galleryCounter">1 / {{ property.images.count }}</small>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="shareProperty()"><i class="bi bi-share me-1"></i>Share</button>
+                                <button type="button" class="btn btn-outline-danger btn-sm" {% if user.is_authenticated %}onclick="document.getElementById('favoriteBtn')?.click()"{% endif %}><i class="bi bi-heart me-1"></i>Favorite</button>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
                         </div>
-                        <div class="col-sm-6">
-                            <div class="d-flex align-items-center p-3 bg-light rounded">
-                                <i class="bi bi-signpost text-primary me-3" style="font-size: 1.5rem;"></i>
-                                <div><small class="text-muted d-block">Ward Number</small><strong>{{ property.ward_number }}</strong></div>
-                            </div>
-                        </div>
-                        {% if property.municipality %}
-                        <div class="col-sm-6">
-                            <div class="d-flex align-items-center p-3 bg-light rounded">
-                                <i class="bi bi-pin-map text-primary me-3" style="font-size: 1.5rem;"></i>
-                                <div><small class="text-muted d-block">Municipality</small><strong>{{ property.municipality }}</strong></div>
-                            </div>
-                        </div>
-                        {% endif %}
-                        {% if property.rental_purpose and property.rental_purpose != 'any' %}
-                        <div class="col-sm-6">
-                            <div class="d-flex align-items-center p-3 bg-light rounded">
-                                <i class="bi bi-people text-primary me-3" style="font-size: 1.5rem;"></i>
-                                <div><small class="text-muted d-block">Rental Purpose</small><strong>{{ property.get_rental_purpose_display }}</strong></div>
-                            </div>
-                        </div>
-                        {% endif %}
-                        <div class="col-12">
-                            <div class="d-flex align-items-center p-3 bg-light rounded">
-                                <i class="bi bi-geo-alt text-primary me-3" style="font-size: 1.5rem;"></i>
-                                <div><small class="text-muted d-block">Full Address</small><strong>{{ property.address }}</strong></div>
+                        <div class="modal-body p-0">
+                            <div id="galleryCarousel" class="carousel slide" data-bs-ride="false">
+                                <div class="carousel-indicators">
+                                    {% for image in property.images.all %}
+                                    <button type="button" data-bs-target="#galleryCarousel" data-bs-slide-to="{{ forloop.counter0 }}" {% if forloop.first %}class="active" aria-current="true"{% endif %}></button>
+                                    {% endfor %}
+                                </div>
+                                <div class="carousel-inner">
+                                    {% for image in property.images.all %}
+                                    <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                                        <img src="{{ image.image.url }}" class="d-block w-100" style="max-height: 75vh; object-fit: contain; background: #0f172a;" alt="{{ image.caption|default:property.title }}" loading="lazy">
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                <button class="carousel-control-prev" type="button" data-bs-target="#galleryCarousel" data-bs-slide="prev">
+                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                    <span class="visually-hidden">Previous</span>
+                                </button>
+                                <button class="carousel-control-next" type="button" data-bs-target="#galleryCarousel" data-bs-slide="next">
+                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                    <span class="visually-hidden">Next</span>
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+            {% endif %}
 
-            <!-- Amenities -->
-            {% if property.amenities.all %}
+            <!-- Nearby Places -->
             <div class="card shadow-sm border-0 mb-4">
                 <div class="card-body">
-                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-check2-square me-2"></i>Amenities</h5>
-                    <div class="d-flex flex-wrap gap-2">
-                        {% for amenity in property.amenities.all %}
-                        <span class="badge bg-light text-dark border px-3 py-2 fs-6">
-                            {% if amenity.icon %}<i class="bi bi-{{ amenity.icon }} me-1"></i>{% endif %}
-                            {{ amenity.name }}
-                        </span>
+                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-geo-alt-fill me-2"></i>Nearby Places</h5>
+                    {% if property.nearby_place_cards %}
+                    <div class="d-grid gap-2">
+                        {% for place in property.nearby_place_cards %}
+                        <div class="nearby-item-card">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi {{ place.icon|default:'bi-geo-alt' }} text-primary"></i>
+                                <div>
+                                    <div class="fw-semibold">{{ place.name }}</div>
+                                    {% if place.type %}<small class="text-muted">{{ place.type }}</small>{% endif %}
+                                </div>
+                            </div>
+                            <strong class="text-muted">{{ place.distance|default:'N/A' }}</strong>
+                        </div>
                         {% endfor %}
                     </div>
+                    {% else %}
+                    <p class="text-muted mb-0">Nearby facilities will be shown once the owner adds location intelligence data.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- House Rules -->
+            {% if property.house_rules %}
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-journal-text me-2"></i>House Rules</h5>
+                    <p class="mb-0" style="white-space: pre-line;">{{ property.house_rules }}</p>
                 </div>
             </div>
             {% endif %}
@@ -295,7 +577,12 @@
                                                 <i class="bi bi-crosshairs me-2"></i>Detect My Current Location
                                             </button>
                                             <div class="text-center mt-2">
-                                                <small class="text-muted" id="locationStatus">Click to get your location</small>
+                                                <small class="text-muted" id="locationStatus">Click to detect or click on the map to set your location</small>
+                                            </div>
+                                            <div class="text-center mt-2">
+                                                <button type="button" class="btn btn-outline-primary btn-sm w-100" id="manualLocationBtn">
+                                                    <i class="bi bi-hand-index me-2"></i>Click on Map to Set My Location
+                                                </button>
                                             </div>
                                         </div>
                                         
@@ -353,7 +640,7 @@
                                         <!-- No Directions Yet -->
                                         <div id="noDirectionsYet" class="text-center py-4">
                                             <i class="bi bi-arrow-up-circle text-muted" style="font-size: 2rem;"></i>
-                                            <p class="text-muted mt-2 mb-0 small">Click "Detect My Location" to get directions to this property</p>
+                                            <p class="text-muted mt-2 mb-0 small">Click "Detect My Location" or use "Click on Map" to set your starting point and get directions</p>
                                         </div>
                                     </div>
                                 </div>
@@ -402,6 +689,18 @@
                                     {% endif %}
                                 {% endfor %}
                             </div>
+                            {% if review.cleanliness or review.location or review.security %}
+                            <div class="d-flex flex-wrap gap-2 mb-2">
+                                {% if review.cleanliness %}<span class="badge bg-light text-dark border">Cleanliness {{ review.cleanliness }}/5</span>{% endif %}
+                                {% if review.location %}<span class="badge bg-light text-dark border">Location {{ review.location }}/5</span>{% endif %}
+                                {% if review.owner_behavior %}<span class="badge bg-light text-dark border">Owner {{ review.owner_behavior }}/5</span>{% endif %}
+                                {% if review.value_for_money %}<span class="badge bg-light text-dark border">Value {{ review.value_for_money }}/5</span>{% endif %}
+                                {% if review.security %}<span class="badge bg-light text-dark border">Security {{ review.security }}/5</span>{% endif %}
+                                {% if review.water_supply %}<span class="badge bg-light text-dark border">Water {{ review.water_supply }}/5</span>{% endif %}
+                                {% if review.internet_quality %}<span class="badge bg-light text-dark border">Internet {{ review.internet_quality }}/5</span>{% endif %}
+                                {% if review.parking %}<span class="badge bg-light text-dark border">Parking {{ review.parking }}/5</span>{% endif %}
+                            </div>
+                            {% endif %}
                             <p class="mb-0 small">{{ review.comment }}</p>
                         </div>
                     </div>
@@ -416,14 +715,25 @@
                     <h6 class="fw-bold mb-3">Write a Review</h6>
                     <form method="post" action="{% url 'reviews:add' property.pk %}">
                         {% csrf_token %}
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Rating</label>
-                            <div class="star-rating-input" id="starRatingInput">
-                                {% for i in "54321" %}
-                                <input type="radio" name="rating" value="{{ i }}" id="star{{ i }}" required>
-                                <label for="star{{ i }}" title="{{ i }} star{{ i|pluralize }}"><i class="bi bi-star-fill"></i></label>
-                                {% endfor %}
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Overall Rating</label>
+                                <div class="star-rating-input" id="starRatingInput">
+                                    {% for i in "54321" %}
+                                    <input type="radio" name="rating" value="{{ i }}" id="star{{ i }}" required>
+                                    <label for="star{{ i }}" title="{{ i }} star{{ i|pluralize }}"><i class="bi bi-star-fill"></i></label>
+                                    {% endfor %}
+                                </div>
                             </div>
+                            <div class="col-md-6"></div>
+                            <div class="col-md-3">{{ review_form.cleanliness }}</div>
+                            <div class="col-md-3">{{ review_form.location }}</div>
+                            <div class="col-md-3">{{ review_form.owner_behavior }}</div>
+                            <div class="col-md-3">{{ review_form.value_for_money }}</div>
+                            <div class="col-md-3">{{ review_form.security }}</div>
+                            <div class="col-md-3">{{ review_form.water_supply }}</div>
+                            <div class="col-md-3">{{ review_form.internet_quality }}</div>
+                            <div class="col-md-3">{{ review_form.parking }}</div>
                         </div>
                         <div class="mb-3">
                             <label for="id_comment" class="form-label fw-semibold">Comment</label>
@@ -599,6 +909,16 @@
                                         <option value="inquiry">General Inquiry</option>
                                     </select>
                                 </div>
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Visit Date</label>
+                                        <input type="date" name="visit_date" class="form-control">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Visit Time</label>
+                                        <input type="time" name="visit_time" class="form-control">
+                                    </div>
+                                </div>
                                 <div class="mb-3">
                                     <label class="form-label fw-semibold">Message <span class="text-danger">*</span></label>
                                     <textarea name="message" class="form-control" rows="4"
@@ -661,15 +981,61 @@
 {% if property.has_location %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<!-- Google Maps API for Directions -->
-<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_key }}&libraries=places,geometry" async defer></script>
+<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.min.js"></script>
 <script>
+(function() {
+    const galleryImages = [
+        {% for image in property.images.all %}
+        "{{ image.image.url }}"{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    window.openGallery = function(index) {
+        const modal = document.getElementById('galleryModal');
+        const carousel = document.getElementById('galleryCarousel');
+        if (!modal || !carousel) return;
+        const instance = bootstrap.Modal.getOrCreateInstance(modal);
+        instance.show();
+        const carouselInstance = bootstrap.Carousel.getOrCreateInstance(carousel, { interval: false, ride: false });
+        carouselInstance.to(index || 0);
+        updateGalleryCounter(index || 0);
+    };
+
+    function updateGalleryCounter(index) {
+        const counter = document.getElementById('galleryCounter');
+        if (counter) {
+            counter.textContent = (index + 1) + ' / ' + galleryImages.length;
+        }
+    }
+
+    document.addEventListener('shown.bs.carousel', function(event) {
+        if (event.target && event.target.id === 'galleryCarousel') {
+            const activeIndex = Array.prototype.indexOf.call(event.target.querySelectorAll('.carousel-item'), event.target.querySelector('.carousel-item.active'));
+            updateGalleryCounter(activeIndex >= 0 ? activeIndex : 0);
+        }
+    });
+
+    window.shareProperty = function() {
+        const shareData = {
+            title: '{{ property.title|escapejs }}',
+            text: '{{ property.title|escapejs }} - {{ property.district|escapejs }}',
+            url: window.location.href,
+        };
+        if (navigator.share) {
+            navigator.share(shareData).catch(function() {});
+        } else {
+            navigator.clipboard.writeText(window.location.href);
+            alert('Property link copied to clipboard.');
+        }
+    };
+})();
+
 (function() {
     var lat = {{ property.latitude }};
     var lng = {{ property.longitude }};
     var map = L.map('detailMap').setView([lat, lng], 15);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
         maxZoom: 19,
     }).addTo(map);
     L.marker([lat, lng]).addTo(map)
@@ -677,12 +1043,12 @@
         .openPopup();
 })();
 
-// Directions Modal Functionality
+// Directions Modal Functionality (Leaflet + OSRM - no API key needed)
 let directionsMap = null;
-let directionsService = null;
-let directionsRenderer = null;
 let userMarker = null;
 let propertyMarker = null;
+let routingControl = null;
+let routeLine = null;
 let userLocation = null;
 
 const propertyLat = {{ property.latitude }};
@@ -690,137 +1056,181 @@ const propertyLng = {{ property.longitude }};
 const propertyTitle = '{{ property.title|escapejs }}';
 const propertyAddress = '{{ property.address|escapejs }}{% if property.municipality %}, {{ property.municipality|escapejs }}{% endif %}, {{ property.district|escapejs }}';
 
+// OSRM profile mapping
+const TRAVEL_PROFILES = {
+    'DRIVING': 'car',
+    'WALKING': 'foot',
+    'TRANSIT': 'car'   // OSRM doesn't have transit, fall back to car
+};
+
+const TRAVEL_SPEEDS_KPH = {
+    'DRIVING': 32,
+    'WALKING': 5,
+    'TRANSIT': 20
+};
+
+function formatDuration(minutes) {
+    var safeMinutes = Math.max(1, Math.round(minutes));
+    if (safeMinutes >= 60) {
+        return Math.floor(safeMinutes / 60) + ' hr ' + (safeMinutes % 60) + ' min';
+    }
+    return safeMinutes + ' min';
+}
+
+function estimateDurationMinutes(distanceMeters, travelMode) {
+    var speedKph = TRAVEL_SPEEDS_KPH[travelMode] || 30;
+    return Math.max(1, Math.round((distanceMeters / 1000) / speedKph * 60));
+}
+
 // Initialize directions map when modal is shown
 document.getElementById('locationDirectionsModal').addEventListener('shown.bs.modal', function() {
     if (!directionsMap) {
         initDirectionsMap();
+    } else {
+        directionsMap.invalidateSize();
     }
 });
 
 function initDirectionsMap() {
-    // Initialize Google Map
-    directionsMap = new google.maps.Map(document.getElementById('directionsMap'), {
-        center: { lat: propertyLat, lng: propertyLng },
-        zoom: 14,
-        styles: [
-            { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] }
-        ]
+    directionsMap = L.map('directionsMap').setView([propertyLat, propertyLng], 14);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+        maxZoom: 19,
+    }).addTo(directionsMap);
+
+    // Property marker (red)
+    var propertyIcon = L.divIcon({
+        html: '<i class="bi bi-geo-alt-fill" style="font-size:2rem;color:#DC143C;text-shadow:0 1px 3px rgba(0,0,0,0.4);"></i>',
+        iconSize: [30, 36],
+        iconAnchor: [15, 36],
+        popupAnchor: [0, -36],
+        className: ''
     });
-    
-    // Initialize directions services
-    directionsService = new google.maps.DirectionsService();
-    directionsRenderer = new google.maps.DirectionsRenderer({
-        map: directionsMap,
-        suppressMarkers: true,
-        polylineOptions: {
-            strokeColor: '#0d6efd',
-            strokeWeight: 5,
-            strokeOpacity: 0.8
+    propertyMarker = L.marker([propertyLat, propertyLng], { icon: propertyIcon }).addTo(directionsMap);
+    propertyMarker.bindPopup(
+        '<strong style="color:#DC143C;">' + propertyTitle + '</strong><br><small>' + propertyAddress + '</small>'
+    ).openPopup();
+
+    // Click on map to set user location manually
+    directionsMap.on('click', function(e) {
+        if (manualSelectMode) {
+            setUserLocation(e.latlng.lat, e.latlng.lng, 'Location set from map');
         }
     });
-    
-    // Add property marker
-    propertyMarker = new google.maps.Marker({
-        position: { lat: propertyLat, lng: propertyLng },
-        map: directionsMap,
-        icon: {
-            path: 'M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24c0-6.6-5.4-12-12-12zm0 18c-3.3 0-6-2.7-6-6s2.7-6 6-6 6 2.7 6 6-2.7 6-6 6z',
-            fillColor: '#DC143C',
-            fillOpacity: 1,
-            strokeColor: '#fff',
-            strokeWeight: 2,
-            scale: 1.2,
-            anchor: new google.maps.Point(12, 36)
-        },
-        title: propertyTitle
-    });
-    
-    // Property info window
-    const propertyInfoWindow = new google.maps.InfoWindow({
-        content: `
-            <div style="padding: 10px; max-width: 250px;">
-                <strong style="color: #DC143C;">${propertyTitle}</strong><br>
-                <small style="color: #666;">${propertyAddress}</small>
-            </div>
-        `
-    });
-    
-    propertyMarker.addListener('click', function() {
-        propertyInfoWindow.open(directionsMap, propertyMarker);
-    });
-    
-    propertyInfoWindow.open(directionsMap, propertyMarker);
 }
 
-// Get user location button
+// Set user location on map and calculate route
+function setUserLocation(lat, lng, label) {
+    userLocation = { lat: lat, lng: lng };
+    var statusEl = document.getElementById('locationStatus');
+    statusEl.innerHTML = '<i class="bi bi-check-circle text-success me-1"></i>' + (label || 'Location set') + ' (' + lat.toFixed(4) + ', ' + lng.toFixed(4) + ')';
+
+    var detectBtn = document.getElementById('getMyLocationBtn');
+    detectBtn.disabled = false;
+    detectBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Location Set';
+    detectBtn.classList.remove('btn-success');
+    detectBtn.classList.add('btn-outline-success');
+
+    // Add/update user marker (blue circle)
+    if (userMarker) {
+        directionsMap.removeLayer(userMarker);
+    }
+    var userIcon = L.divIcon({
+        html: '<div style="width:20px;height:20px;background:#4285F4;border:3px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3);"></div>',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
+        className: ''
+    });
+    userMarker = L.marker([lat, lng], { icon: userIcon }).addTo(directionsMap);
+    userMarker.bindPopup('<strong>Your Location</strong>');
+
+    // Stop manual selection mode
+    if (manualSelectMode) {
+        manualSelectMode = false;
+        var manualBtn = document.getElementById('manualLocationBtn');
+        manualBtn.innerHTML = '<i class="bi bi-hand-index me-2"></i>Click on Map to Set My Location';
+        manualBtn.classList.remove('btn-primary');
+        manualBtn.classList.add('btn-outline-primary');
+        directionsMap.getContainer().style.cursor = '';
+    }
+
+    calculateAndDisplayRoute();
+}
+
+// Manual location selection - click on map
+var manualSelectMode = false;
+document.getElementById('manualLocationBtn').addEventListener('click', function() {
+    var btn = this;
+    if (!directionsMap) {
+        document.getElementById('locationStatus').innerHTML = '<i class="bi bi-info-circle text-info me-1"></i>Please wait for the map to load...';
+        return;
+    }
+    manualSelectMode = !manualSelectMode;
+    if (manualSelectMode) {
+        btn.innerHTML = '<i class="bi bi-cursor me-2"></i>Now click anywhere on the map...';
+        btn.classList.remove('btn-outline-primary');
+        btn.classList.add('btn-primary');
+        directionsMap.getContainer().style.cursor = 'crosshair';
+        document.getElementById('locationStatus').innerHTML = '<i class="bi bi-info-circle text-info me-1"></i>Click on the map to set your starting location';
+    } else {
+        btn.innerHTML = '<i class="bi bi-hand-index me-2"></i>Click on Map to Set My Location';
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-outline-primary');
+        directionsMap.getContainer().style.cursor = '';
+    }
+});
+
+// Get user location button (auto-detect)
 document.getElementById('getMyLocationBtn').addEventListener('click', function() {
-    const btn = this;
-    const statusEl = document.getElementById('locationStatus');
-    
+    var btn = this;
+    var statusEl = document.getElementById('locationStatus');
+
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Detecting...';
     statusEl.textContent = 'Requesting location access...';
-    
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            function(position) {
-                userLocation = {
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude
-                };
-                
-                statusEl.innerHTML = '<i class="bi bi-check-circle text-success me-1"></i>Location detected!';
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Location Detected';
-                btn.classList.remove('btn-success');
-                btn.classList.add('btn-outline-success');
-                
-                // Add user marker
-                if (userMarker) userMarker.setMap(null);
-                userMarker = new google.maps.Marker({
-                    position: userLocation,
-                    map: directionsMap,
-                    icon: {
-                        path: google.maps.SymbolPath.CIRCLE,
-                        scale: 12,
-                        fillColor: '#4285F4',
-                        fillOpacity: 1,
-                        strokeColor: '#fff',
-                        strokeWeight: 3
-                    },
-                    title: 'Your Location'
-                });
-                
-                // Calculate route
-                calculateAndDisplayRoute();
-            },
-            function(error) {
-                let errorMsg = 'Unable to get location';
-                switch(error.code) {
-                    case error.PERMISSION_DENIED:
-                        errorMsg = 'Location access denied. Please enable location permissions.';
-                        break;
-                    case error.POSITION_UNAVAILABLE:
-                        errorMsg = 'Location information unavailable.';
-                        break;
-                    case error.TIMEOUT:
-                        errorMsg = 'Location request timed out.';
-                        break;
-                }
-                statusEl.innerHTML = '<i class="bi bi-exclamation-circle text-danger me-1"></i>' + errorMsg;
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-crosshairs me-2"></i>Try Again';
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 60000
-            }
-        );
-    } else {
-        statusEl.innerHTML = '<i class="bi bi-exclamation-circle text-danger me-1"></i>Geolocation not supported';
+
+    if (!navigator.geolocation) {
+        statusEl.innerHTML = '<i class="bi bi-exclamation-circle text-warning me-1"></i>Auto-detect not supported. Use "Click on Map" to set your location manually.';
         btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-crosshairs me-2"></i>Try Again';
+        return;
     }
+
+    // Check if page is served over HTTPS or localhost
+    var isSecure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+
+    navigator.geolocation.getCurrentPosition(
+        function(position) {
+            setUserLocation(position.coords.latitude, position.coords.longitude, 'Location detected!');
+        },
+        function(error) {
+            var errorMsg = '';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMsg = 'Location access denied by browser.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMsg = 'Auto-detect unavailable.';
+                    break;
+                case error.TIMEOUT:
+                    errorMsg = 'Location request timed out.';
+                    break;
+            }
+            if (!isSecure) {
+                errorMsg += ' Location detection requires HTTPS.';
+            }
+            errorMsg += ' Use "Click on Map" button below to set your location manually.';
+            statusEl.innerHTML = '<i class="bi bi-exclamation-circle text-warning me-1"></i>' + errorMsg;
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-crosshairs me-2"></i>Try Again';
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 60000
+        }
+    );
 });
 
 // Travel mode change
@@ -833,51 +1243,105 @@ document.querySelectorAll('input[name="travelMode"]').forEach(function(radio) {
 });
 
 function calculateAndDisplayRoute() {
-    const travelMode = document.querySelector('input[name="travelMode"]:checked').value;
-    
-    directionsService.route({
-        origin: userLocation,
-        destination: { lat: propertyLat, lng: propertyLng },
-        travelMode: google.maps.TravelMode[travelMode]
-    }, function(response, status) {
-        if (status === 'OK') {
-            directionsRenderer.setDirections(response);
-            
-            const route = response.routes[0].legs[0];
-            
-            // Update distance and duration
-            document.getElementById('totalDistance').textContent = route.distance.text;
-            document.getElementById('totalDuration').textContent = route.duration.text;
-            
+    if (!userLocation || !directionsMap) return;
+
+    var travelMode = document.querySelector('input[name="travelMode"]:checked').value;
+    var profile = TRAVEL_PROFILES[travelMode] || 'car';
+
+    // Remove previous route line
+    if (routeLine) {
+        directionsMap.removeLayer(routeLine);
+        routeLine = null;
+    }
+    // Remove previous routing control
+    if (routingControl) {
+        directionsMap.removeControl(routingControl);
+        routingControl = null;
+    }
+
+    // Use OSRM demo server for routing (free, no API key)
+    var osrmUrl = 'https://router.project-osrm.org/route/v1/' + profile + '/'
+        + userLocation.lng + ',' + userLocation.lat + ';'
+        + propertyLng + ',' + propertyLat
+        + '?overview=full&geometries=geojson&steps=true';
+
+    fetch(osrmUrl)
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+            if (data.code !== 'Ok' || !data.routes || data.routes.length === 0) {
+                document.getElementById('locationStatus').innerHTML =
+                    '<i class="bi bi-exclamation-circle text-warning me-1"></i>Could not find a route. The locations may be too far apart.';
+                return;
+            }
+
+            var route = data.routes[0];
+            var coords = route.geometry.coordinates.map(function(c) {
+                return [c[1], c[0]]; // GeoJSON is [lng, lat], Leaflet uses [lat, lng]
+            });
+
+            // Draw route line
+            routeLine = L.polyline(coords, {
+                color: '#0d6efd',
+                weight: 5,
+                opacity: 0.8
+            }).addTo(directionsMap);
+
+            // Fit map to show entire route
+            var bounds = L.latLngBounds([
+                [userLocation.lat, userLocation.lng],
+                [propertyLat, propertyLng]
+            ]);
+            coords.forEach(function(c) { bounds.extend(c); });
+            directionsMap.fitBounds(bounds, { padding: [40, 40] });
+
+            // Distance and duration
+            var distKm = (route.distance / 1000).toFixed(1);
+            var distText = distKm >= 1 ? distKm + ' km' : Math.round(route.distance) + ' m';
+            var durMinutes = estimateDurationMinutes(route.distance, travelMode);
+            var durText = formatDuration(durMinutes);
+
+            document.getElementById('totalDistance').textContent = distText;
+            document.getElementById('totalDuration').textContent = durText;
+
             // Show results, hide placeholder
             document.getElementById('directionResults').classList.remove('d-none');
             document.getElementById('noDirectionsYet').classList.add('d-none');
-            
-            // Populate direction steps
-            const stepsContainer = document.getElementById('directionSteps');
-            stepsContainer.innerHTML = route.steps.map(function(step, index) {
-                return `
-                    <div class="list-group-item py-2 px-3">
-                        <div class="d-flex align-items-start">
-                            <span class="badge bg-primary me-2">${index + 1}</span>
-                            <div>
-                                <div class="small">${step.instructions}</div>
-                                <small class="text-muted">${step.distance.text} - ${step.duration.text}</small>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            
-            // Fit bounds to show both markers
-            const bounds = new google.maps.LatLngBounds();
-            bounds.extend(userLocation);
-            bounds.extend({ lat: propertyLat, lng: propertyLng });
-            directionsMap.fitBounds(bounds, { padding: 50 });
-        } else {
-            alert('Could not calculate directions: ' + status);
-        }
-    });
+
+            // Populate turn-by-turn steps
+            var stepsContainer = document.getElementById('directionSteps');
+            var legs = route.legs;
+            var stepsHtml = '';
+            var stepNum = 1;
+
+            legs.forEach(function(leg) {
+                leg.steps.forEach(function(step) {
+                    var stepDist = step.distance >= 1000
+                        ? (step.distance / 1000).toFixed(1) + ' km'
+                        : Math.round(step.distance) + ' m';
+                    var stepDurText = formatDuration(estimateDurationMinutes(step.distance, travelMode));
+                    var instruction = step.maneuver
+                        ? (step.maneuver.type.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); })
+                           + (step.name ? ' onto ' + step.name : ''))
+                        : (step.name || 'Continue');
+
+                    stepsHtml += '<div class="list-group-item py-2 px-3">'
+                        + '<div class="d-flex align-items-start">'
+                        + '<span class="badge bg-primary me-2">' + stepNum + '</span>'
+                        + '<div>'
+                        + '<div class="small">' + instruction + '</div>'
+                        + '<small class="text-muted">' + stepDist + ' - ' + stepDurText + '</small>'
+                        + '</div></div></div>';
+                    stepNum++;
+                });
+            });
+
+            stepsContainer.innerHTML = stepsHtml || '<div class="list-group-item text-muted small">Direct route</div>';
+        })
+        .catch(function(err) {
+            console.error('Routing error:', err);
+            document.getElementById('locationStatus').innerHTML =
+                '<i class="bi bi-exclamation-circle text-danger me-1"></i>Failed to calculate route. Please check your internet connection.';
+        });
 }
 </script>
 {% endif %}

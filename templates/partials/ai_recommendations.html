@@ -309,15 +309,26 @@ function renderRecommendations(recommendations) {
     
     recommendations.forEach((property, index) => {
         const matchScore = Math.floor(Math.random() * 10) + 90; // 90-99% match for demo
+        const title = escapeHtml(property.title || 'Property');
+        const district = escapeHtml(property.district || '');
+        const municipality = escapeHtml(property.municipality || '');
+        const typeLabel = escapeHtml(property.property_type || '');
+        const safeUrl = toSafeInternalUrl(property.url);
+        const imageUrl = toSafeImageUrl(property.image);
+
+        const numRooms = toNumber(property.num_rooms, null);
+        const rating = toNumber(property.rating, null);
+        const reviewCount = toNumber(property.review_count, null);
+        const price = toNumber(property.price, 0);
         
         const card = document.createElement('div');
         card.className = 'col-md-6 col-lg-4';
         card.innerHTML = `
-            <a href="${property.url}" class="recommendation-link">
+            <a href="${safeUrl}" class="recommendation-link">
                 <div class="recommendation-card" data-aos="fade-up" data-aos-delay="${index * 100}">
                     <div class="recommendation-image">
-                        <img src="${property.image || '{% static "images/property-placeholder.jpg" %}'}" 
-                             alt="${property.title}"
+                        <img src="${imageUrl}" 
+                             alt="${title}"
                              onerror="this.src='{% static "images/property-placeholder.jpg" %}'">
                         <div class="ai-match-badge">
                             <i class="bi bi-stars"></i>
@@ -325,34 +336,34 @@ function renderRecommendations(recommendations) {
                         </div>
                     </div>
                     <div class="recommendation-body">
-                        <div class="recommendation-type">${property.property_type}</div>
-                        <h4 class="recommendation-title">${property.title}</h4>
+                        <div class="recommendation-type">${typeLabel}</div>
+                        <h4 class="recommendation-title">${title}</h4>
                         <div class="recommendation-location">
                             <i class="bi bi-geo-alt-fill"></i>
-                            ${property.municipality ? property.municipality + ', ' : ''}${property.district}
+                            ${municipality ? municipality + ', ' : ''}${district}
                         </div>
                         <div class="recommendation-features">
-                            ${property.num_rooms ? `
+                            ${numRooms ? `
                             <div class="recommendation-feature">
                                 <i class="bi bi-door-open"></i>
-                                ${property.num_rooms} Rooms
+                                ${numRooms} Rooms
                             </div>
                             ` : ''}
-                            ${property.rating ? `
+                            ${rating ? `
                             <div class="recommendation-feature">
                                 <i class="bi bi-star-fill"></i>
-                                ${property.rating.toFixed(1)}
+                                ${rating.toFixed(1)}
                             </div>
                             ` : ''}
                         </div>
                         <div class="recommendation-footer">
                             <div class="recommendation-price">
-                                Rs. ${property.price.toLocaleString()}<small>/mo</small>
+                                Rs. ${price.toLocaleString()}<small>/mo</small>
                             </div>
-                            ${property.review_count ? `
+                            ${reviewCount ? `
                             <div class="recommendation-rating">
                                 <i class="bi bi-chat-dots"></i>
-                                ${property.review_count} reviews
+                                ${reviewCount} reviews
                             </div>
                             ` : ''}
                         </div>
@@ -363,6 +374,33 @@ function renderRecommendations(recommendations) {
         
         grid.appendChild(card);
     });
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = String(text || '');
+    return div.innerHTML;
+}
+
+function toNumber(value, fallback = 0) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+}
+
+function toSafeInternalUrl(url) {
+    const value = String(url || '').trim();
+    if (value.startsWith('/')) {
+        return value;
+    }
+    return '#';
+}
+
+function toSafeImageUrl(url) {
+    const value = String(url || '').trim();
+    if (/^(https?:\/\/|\/)/i.test(value)) {
+        return value;
+    }
+    return '{% static "images/property-placeholder.jpg" %}';
 }
 
 // Track viewed properties (call this from property detail page)

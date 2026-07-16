@@ -15,6 +15,8 @@
     if (!toggleBtn || !chatWindow) return;
 
     let conversationHistory = [];
+    var MAX_HISTORY_ITEMS = 16;
+    var MAX_MESSAGE_LENGTH = 1200;
 
     // Toggle chat window
     toggleBtn.addEventListener('click', function() {
@@ -36,12 +38,19 @@
         e.preventDefault();
         const message = chatInput.value.trim();
         if (!message) return;
+        if (message.length > MAX_MESSAGE_LENGTH) {
+            addMessage('Message too long. Please keep it under 1200 characters.', 'bot');
+            return;
+        }
 
         addMessage(message, 'user');
         chatInput.value = '';
         chatInput.disabled = true;
 
         conversationHistory.push({ role: 'user', content: message });
+        if (conversationHistory.length > MAX_HISTORY_ITEMS) {
+            conversationHistory = conversationHistory.slice(-MAX_HISTORY_ITEMS);
+        }
 
         showTypingIndicator();
 
@@ -66,6 +75,9 @@
             chatInput.focus();
 
             conversationHistory.push({ role: 'assistant', content: data.response });
+            if (conversationHistory.length > MAX_HISTORY_ITEMS) {
+                conversationHistory = conversationHistory.slice(-MAX_HISTORY_ITEMS);
+            }
 
             addBotMessage(data.response, data.properties || []);
         })
@@ -141,7 +153,8 @@
     }
 
     function formatBotText(text) {
-        // Convert newlines to <br>
-        return text.replace(/\n/g, '<br>').replace(/- /g, '&bull; ');
+        // Escape model output first, then apply simple formatting.
+        var escaped = escapeHtml(String(text));
+        return escaped.replace(/\n/g, '<br>').replace(/- /g, '&bull; ');
     }
 })();

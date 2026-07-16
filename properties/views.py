@@ -24,6 +24,7 @@ def property_list(request):
     if form.is_valid():
         keyword = form.cleaned_data.get('keyword')
         property_type = form.cleaned_data.get('property_type')
+        province = form.cleaned_data.get('province')
         district = form.cleaned_data.get('district')
         municipality = form.cleaned_data.get('municipality')
         ward_number = form.cleaned_data.get('ward_number')
@@ -35,10 +36,17 @@ def property_list(request):
 
         if keyword:
             properties = properties.filter(
-                Q(title__icontains=keyword) | Q(description__icontains=keyword)
+                Q(title__icontains=keyword)
+                | Q(description__icontains=keyword)
+                | Q(address__icontains=keyword)
+                | Q(district__icontains=keyword)
+                | Q(municipality__icontains=keyword)
+                | Q(ward_number__icontains=keyword)
             )
         if property_type:
             properties = properties.filter(property_type=property_type)
+        if province:
+            properties = properties.filter(province__iexact=province)
         if district:
             properties = properties.filter(district__icontains=district)
         if municipality:
@@ -94,6 +102,18 @@ def property_detail(request, pk):
     review_form = ReviewForm()
     request_form = PropertyRequestForm()
 
+    review_averages = property_obj.reviews.aggregate(
+        rating=Avg('rating'),
+        cleanliness=Avg('cleanliness'),
+        location=Avg('location'),
+        owner_behavior=Avg('owner_behavior'),
+        value_for_money=Avg('value_for_money'),
+        security=Avg('security'),
+        water_supply=Avg('water_supply'),
+        internet_quality=Avg('internet_quality'),
+        parking=Avg('parking'),
+    )
+
     # Google Maps API key for directions
     google_maps_key = getattr(settings, 'GOOGLE_MAPS_API_KEY', '')
 
@@ -104,6 +124,7 @@ def property_detail(request, pk):
         'review_form': review_form,
         'request_form': request_form,
         'reviews': property_obj.reviews.select_related('reviewer')[:10],
+        'review_averages': review_averages,
         'google_maps_key': google_maps_key,
         'today_date': date.today().isoformat(),
     }
@@ -111,24 +132,15 @@ def property_detail(request, pk):
 
 
 def map_explorer(request):
-    """Interactive map view with all properties - Premium version with Google Maps."""
-    from django.conf import settings
+    """Airbnb-style interactive map view with property cards and price markers."""
     form = PropertySearchForm(request.GET)
-    
-    # Check if premium map should be used (when Google Maps API key is available)
     google_maps_key = getattr(settings, 'GOOGLE_MAPS_API_KEY', '')
-    
     context = {
         'form': form,
         'google_maps_key': google_maps_key,
     }
-    
-    # Use premium template if Google Maps API key is configured
-    if google_maps_key:
-        return render(request, 'properties/map_explorer_premium.html', context)
-    else:
-        # Fall back to Leaflet-based map
-        return render(request, 'properties/map_explorer.html', context)
+    template_name = 'properties/map_explorer_premium.html' if google_maps_key else 'properties/map_explorer.html'
+    return render(request, template_name, context)
 
 
 def map_explorer_legacy(request):
@@ -375,12 +387,18 @@ def submit_request(request, pk):
             req.requester = request.user
             req.save()
 
+            request_summary = req.get_request_type_display().lower()
+            if req.request_type == PropertyRequest.RequestType.VISIT and req.visit_date and req.visit_time:
+                request_summary = f'visit for {req.visit_date:%b %d, %Y} at {req.visit_time.strftime("%I:%M %p")}'
+            elif req.request_type == PropertyRequest.RequestType.BOOKING and req.move_in_date:
+                request_summary = f'booking starting {req.move_in_date:%b %d, %Y}'
+
             # Notify the owner
             Notification.objects.create(
                 user=property_obj.owner,
                 notification_type=Notification.NotificationType.REQUEST,
                 title='New Property Request',
-                message=f'{request.user.get_full_name() or request.user.username} sent a {req.get_request_type_display().lower()} request for "{property_obj.title}".',
+                message=f'{request.user.get_full_name() or request.user.username} sent a {request_summary} for "{property_obj.title}".',
                 link=property_obj.get_absolute_url(),
             )
 
@@ -422,6 +440,8 @@ def respond_request(request, pk):
             notif_type = Notification.NotificationType.APPROVAL
             notif_title = 'Request Approved'
             notif_msg = f'Your {req.get_request_type_display().lower()} request for "{req.property.title}" has been approved!'
+            if req.request_type == PropertyRequest.RequestType.VISIT and req.visit_date and req.visit_time:
+                notif_msg += f' Visit scheduled for {req.visit_date:%b %d, %Y} at {req.visit_time.strftime("%I:%M %p")}.'
         elif action == 'reject':
             req.status = PropertyRequest.RequestStatus.REJECTED
             notif_type = Notification.NotificationType.REJECTION
